@@ -470,8 +470,9 @@ bool WindowHelper::filterNativeEvent(
 		if (wParam == WPARAM(GWL_STYLE)
 			&& !_title->isHidden()
 			&& window()->property("AyuWindowMaterialCapable").toBool()) {
-			// Qt 更新窗口标志时不能重新启用系统标题条。
-			reinterpret_cast<STYLESTRUCT*>(lParam)->styleNew &= ~WS_CAPTION;
+			// 保留系统窗口动画，仅关闭自绘标题栏下面的原生按钮。
+			auto &style = reinterpret_cast<STYLESTRUCT*>(lParam)->styleNew;
+			style = (style | WS_CAPTION) & ~WS_SYSMENU;
 		}
 	} return false;
 
@@ -885,10 +886,10 @@ void WindowHelper::updateMargins() {
 	RECT r{};
 	auto style = GetWindowLongPtr(_handle, GWL_STYLE);
 	if (window()->property("AyuWindowMaterialCapable").toBool()) {
-		// 透明自绘标题栏会露出系统按钮，只在原生标题栏下启用系统标题条。
+		// 系统标题条标志负责窗口动画；原生按钮仅在原生标题栏下显示。
 		const auto adjusted = _title->isHidden()
-			? (style | WS_CAPTION)
-			: (style & ~WS_CAPTION);
+			? (style | WS_CAPTION | WS_SYSMENU)
+			: ((style | WS_CAPTION) & ~WS_SYSMENU);
 		if (style != adjusted) {
 			style = adjusted;
 			SetWindowLongPtr(_handle, GWL_STYLE, style);
