@@ -22,6 +22,46 @@
 #include <QtGui/QtEvents>
 
 namespace Ui {
+namespace {
+
+// 主菜单外侧上下两角按 boxRadius 圆角绘制，阴影与压暗随之绕过缺角。
+[[nodiscard]] const BoxShadow &MainMenuShadow() {
+	static const auto result = BoxShadow(st::layerMainMenuShadow);
+	return result;
+}
+
+[[nodiscard]] int MainMenuShadowExtend() {
+	return MainMenuShadow().extend().right();
+}
+
+// 阴影框向内侧多伸出两个圆角，内侧的边与圆角落在可见区域之外。
+void PaintMainMenuShadow(QPainter &p, int right, int height, int outerw) {
+	const auto radius = st::boxRadius;
+	MainMenuShadow().paint(
+		p,
+		style::rtlrect(-2 * radius, 0, right + 2 * radius, height, outerw),
+		radius);
+}
+
+[[nodiscard]] QPixmap GrabMainMenu(not_null<RpWidget*> menu) {
+	SendPendingMoveResizeEvents(menu);
+	const auto extend = MainMenuShadowExtend();
+	const auto size = QSize(menu->width() + extend, menu->height());
+	auto result = QPixmap(size * style::DevicePixelRatio());
+	result.setDevicePixelRatio(style::DevicePixelRatio());
+	result.fill(Qt::transparent);
+	{
+		auto p = QPainter(&result);
+		PaintMainMenuShadow(p, menu->width(), menu->height(), size.width());
+		RenderWidget(
+			p,
+			menu,
+			QPoint(style::RightToLeft() ? extend : 0, 0));
+	}
+	return result;
+}
+
+} // namespace
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
 public:
@@ -182,7 +222,7 @@ void LayerStackWidget::BackgroundWidget::setMainMenuShown(bool shown) {
 			anim::easeOutCirc);
 	}
 	_mainMenuCacheWidth = (_mainMenuCache.width() / style::DevicePixelRatio())
-		- st::boxRoundShadow.extend.right();
+		- MainMenuShadowExtend();
 	_mainMenuRight = _mainMenuShown ? _mainMenuCacheWidth : 0;
 	checkWasShown(wasShown);
 }
@@ -271,7 +311,7 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	if (_mainMenuCache.isNull() && mainMenuRight > 0) {
 		// All cache images are taken together with their shadows,
 		// so we paint shadow only when there is no cache.
-		Ui::Shadow::paint(p, myrtlrect(0, 0, mainMenuRight, height()), width(), st::boxRoundShadow, RectPart::Right);
+		PaintMainMenuShadow(p, mainMenuRight, height(), width());
 	}
 
 	if (_specialLayerCache.isNull() && !specialLayerBox.isEmpty()) {
@@ -311,6 +351,14 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	} else {
 		p.fillRect(bg, st::layerBg);
 	}
+	if (mainMenuRight > 0) {
+		const auto radius = st::boxRadius;
+		const auto left = mainMenuRight - radius;
+		p.fillRect(myrtlrect(left, 0, radius, radius), st::layerBg);
+		p.fillRect(
+			myrtlrect(left, height() - radius, radius, radius),
+			st::layerBg);
+	}
 
 	if (!_specialLayerCache.isNull() && specialLayerOpacity > 0) {
 		p.setOpacity(specialLayerOpacity);
@@ -334,7 +382,7 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	}
 	if (!_mainMenuCache.isNull() && mainMenuRight > 0) {
 		p.setOpacity(1.);
-		auto shownWidth = mainMenuRight + st::boxRoundShadow.extend.right();
+		auto shownWidth = mainMenuRight + MainMenuShadowExtend();
 		auto sourceWidth = shownWidth * style::DevicePixelRatio();
 		auto sourceRect = style::rtlrect(_mainMenuCache.width() - sourceWidth, 0, sourceWidth, _mainMenuCache.height(), _mainMenuCache.width());
 		p.drawPixmapLeft(0, 0, shownWidth, height(), width(), _mainMenuCache, sourceRect);
@@ -567,7 +615,7 @@ void LayerStackWidget::setCacheImages() {
 		hideChildren();
 		bodyCache = Ui::GrabWidget(parentWidget());
 		showChildren();
-		mainMenuCache = Ui::Shadow::grab(_mainMenu, st::boxRoundShadow, RectPart::Right);
+		mainMenuCache = GrabMainMenu(_mainMenu);
 	}
 	setAttribute(Qt::WA_OpaquePaintEvent,
 		!bodyCache.isNull() && !bodyCache.hasAlphaChannel());

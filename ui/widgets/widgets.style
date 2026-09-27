@@ -243,6 +243,9 @@ Menu {
 
 	itemBg: color;
 	itemBgOver: color;
+	// 悬停底色按此内缩并取圆角；两者都为 0 时铺满整行。
+	itemBgMargin: margins;
+	itemBgRadius: pixels;
 	itemFg: color;
 	itemFgOver: color;
 	itemFgDisabled: color;
@@ -967,6 +970,8 @@ defaultMenu: Menu {
 
 	itemBg: windowBg;
 	itemBgOver: windowBgOver;
+	itemBgMargin: margins(6px, 0px, 6px, 0px);
+	itemBgRadius: 8px;
 	itemFg: windowFg;
 	itemFgOver: windowFgOver;
 	itemFgDisabled: menuFgDisabled;

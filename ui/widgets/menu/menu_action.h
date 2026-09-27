@@ -52,7 +52,6 @@ public:
 protected:
 	void paintEvent(QPaintEvent *e) override;
 	QPoint prepareRippleStartPosition() const override;
-	QImage prepareRippleMask() const override;
 
 	int contentHeight() const override;
 

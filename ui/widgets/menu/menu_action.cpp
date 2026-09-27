@@ -6,7 +6,6 @@
 //
 #include "ui/widgets/menu/menu_action.h"
 
-#include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
 
 #include <QtGui/QtEvents>
@@ -96,12 +95,7 @@ void Action::paintEvent(QPaintEvent *e) {
 }
 
 void Action::paintBackground(QPainter &p, bool selected) {
-	if (selected && _st.itemBgOver->c.alpha() < 255) {
-		p.fillRect(0, 0, width(), _height, _st.itemBg);
-	}
-	p.fillRect(
-		QRect(0, 0, width(), _height),
-		selected ? _st.itemBgOver : _st.itemBg);
+	PaintItemBackground(p, _st, QRect(0, 0, width(), _height), selected);
 }
 
 void Action::paintText(Painter &p) {
@@ -209,10 +203,6 @@ not_null<QAction*> Action::action() const {
 
 QPoint Action::prepareRippleStartPosition() const {
 	return mapFromGlobal(QCursor::pos());
-}
-
-QImage Action::prepareRippleMask() const {
-	return Ui::RippleAnimation::RectMask(size());
 }
 
 int Action::contentHeight() const {

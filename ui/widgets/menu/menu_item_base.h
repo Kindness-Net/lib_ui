@@ -16,6 +16,16 @@ namespace Ui::Menu {
 
 class Menu;
 
+// 未选中铺 itemBg；选中时按 itemBgMargin 内缩、itemBgRadius 圆角叠加 itemBgOver。
+void PaintItemBackground(
+	QPainter &p,
+	const style::Menu &st,
+	QRect rect,
+	bool selected);
+
+// 与选中底色同形状的水波纹遮罩。
+[[nodiscard]] QImage ItemRippleMask(const style::Menu &st, QSize size);
+
 class ItemBase : public RippleButton {
 public:
 	ItemBase(not_null<Menu*> parent, const style::Menu &st);
@@ -65,6 +75,8 @@ protected:
 
 	virtual int contentHeight() const = 0;
 
+	QImage prepareRippleMask() const override;
+
 	void keyPressEvent(QKeyEvent *e) override;
 	void keyReleaseEvent(QKeyEvent *e) override;
 	void mousePressEvent(QMouseEvent *e) override;
@@ -72,6 +84,7 @@ protected:
 	void mouseReleaseEvent(QMouseEvent *e) override;
 
 private:
+	const style::Menu &_itemSt;
 	bool _mousePressed = false;
 	int _index = -1;
 

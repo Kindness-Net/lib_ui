@@ -7,16 +7,49 @@
 #include "ui/widgets/menu/menu_item_base.h"
 
 #include "ui/widgets/menu/menu.h"
+#include "ui/effects/ripple_animation.h"
+#include "ui/painter.h"
 
 #include <QtGui/QtEvents>
 
 namespace Ui::Menu {
 
+void PaintItemBackground(
+		QPainter &p,
+		const style::Menu &st,
+		QRect rect,
+		bool selected) {
+	p.fillRect(rect, st.itemBg);
+	if (!selected) {
+		return;
+	}
+	auto path = QPainterPath();
+	path.addRoundedRect(
+		rect.marginsRemoved(st.itemBgMargin),
+		st.itemBgRadius,
+		st.itemBgRadius);
+	auto hq = PainterHighQualityEnabler(p);
+	p.fillPath(path, st.itemBgOver);
+}
+
+QImage ItemRippleMask(const style::Menu &st, QSize size) {
+	const auto rect = QRect(QPoint(), size).marginsRemoved(st.itemBgMargin);
+	const auto radius = st.itemBgRadius;
+	return Ui::RippleAnimation::MaskByDrawer(size, false, [&](QPainter &p) {
+		p.drawRoundedRect(rect, radius, radius);
+	});
+}
+
 ItemBase::ItemBase(
 	not_null<Menu*> parent,
 	const style::Menu &st)
 : RippleButton(parent, st.ripple)
+, _itemSt(st)
 , _menu(parent) {
+}
+
+QImage ItemBase::prepareRippleMask() const {
+	return ItemRippleMask(_itemSt, size());
 }
 
 void ItemBase::setSelected(

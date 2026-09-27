@@ -69,6 +69,12 @@ defaultBoxCheckbox: Checkbox(defaultCheckbox) {
 }
 
 boxRoundShadow: roundShadowRadius8px;
+// 主菜单阴影按实际圆角模糊生成；模糊半径即右侧外扩宽度，缓存图宽度按它计算。
+layerMainMenuShadow: BoxShadow {
+	blurRadius: 10px;
+	offset: point(0px, 0px);
+	opacity: 0.25;
+}
 
 boxTitleFont: font(16px semibold);
 boxTitle: FlatLabel(defaultFlatLabel) {
