@@ -466,6 +466,15 @@ bool WindowHelper::filterNativeEvent(
 
 	switch (msg) {
 
+	case WM_STYLECHANGING: {
+		if (wParam == WPARAM(GWL_STYLE)
+			&& !_title->isHidden()
+			&& window()->property("AyuWindowMaterialCapable").toBool()) {
+			// Qt 更新窗口标志时不能重新启用系统标题条。
+			reinterpret_cast<STYLESTRUCT*>(lParam)->styleNew &= ~WS_CAPTION;
+		}
+	} return false;
+
 	case WM_ACTIVATE: {
 		if (LOWORD(wParam) == WA_CLICKACTIVE) {
 			Ui::MarkInactivePress(window(), true);
@@ -874,7 +883,17 @@ void WindowHelper::updateMargins() {
 	const auto guard = gsl::finally([&] { _updatingMargins = false; });
 
 	RECT r{};
-	const auto style = GetWindowLongPtr(_handle, GWL_STYLE);
+	auto style = GetWindowLongPtr(_handle, GWL_STYLE);
+	if (window()->property("AyuWindowMaterialCapable").toBool()) {
+		// 透明自绘标题栏会露出系统按钮，只在原生标题栏下启用系统标题条。
+		const auto adjusted = _title->isHidden()
+			? (style | WS_CAPTION)
+			: (style & ~WS_CAPTION);
+		if (style != adjusted) {
+			style = adjusted;
+			SetWindowLongPtr(_handle, GWL_STYLE, style);
+		}
+	}
 	const auto styleEx = GetWindowLongPtr(_handle, GWL_EXSTYLE);
 	const auto dpi = _dpi.current();
 	if (AdjustWindowRectExForDpiSupported() && dpi) {

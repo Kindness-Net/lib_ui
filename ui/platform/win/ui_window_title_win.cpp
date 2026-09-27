@@ -72,8 +72,9 @@ TitleWidget::TitleWidget(not_null<RpWidget*> parent)
 , _controls(
 	_paddingHelper ? &_paddingHelper->controlsParent : this,
 	st::defaultWindowTitle)
-, _shadow(this, st::titleShadow) {
+, _shadow(nullptr) {
 	setAttribute(Qt::WA_OpaquePaintEvent);
+	setStyle(st::defaultWindowTitle);
 
 	parent->widthValue(
 	) | rpl::on_next([=](int width) {

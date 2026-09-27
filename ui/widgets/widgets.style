@@ -1605,7 +1605,6 @@ defaultWindowTitle: WindowTitle {
 	oneSideControls: false;
 	minimize: IconButton(windowTitleButton) {
 		icon: icon {
-			{ windowTitleButtonSize, titleButtonBg },
 			{ "title_button_minimize", titleButtonFg },
 		};
 		iconOver: icon {
@@ -1614,7 +1613,6 @@ defaultWindowTitle: WindowTitle {
 		};
 	}
 	minimizeIconActive: icon {
-		{ windowTitleButtonSize, titleButtonBgActive },
 		{ "title_button_minimize", titleButtonFgActive },
 	};
 	minimizeIconActiveOver: icon {
@@ -1623,7 +1621,6 @@ defaultWindowTitle: WindowTitle {
 	};
 	maximize: IconButton(windowTitleButton) {
 		icon: icon {
-			{ windowTitleButtonSize, titleButtonBg },
 			{ "title_button_maximize", titleButtonFg },
 		};
 		iconOver: icon {
@@ -1632,7 +1629,6 @@ defaultWindowTitle: WindowTitle {
 		};
 	}
 	maximizeIconActive: icon {
-		{ windowTitleButtonSize, titleButtonBgActive },
 		{ "title_button_maximize", titleButtonFgActive },
 	};
 	maximizeIconActiveOver: icon {
@@ -1640,7 +1636,6 @@ defaultWindowTitle: WindowTitle {
 		{ "title_button_maximize", titleButtonFgActiveOver },
 	};
 	restoreIcon: icon {
-		{ windowTitleButtonSize, titleButtonBg },
 		{ "title_button_restore", titleButtonFg },
 	};
 	restoreIconOver: icon {
@@ -1648,7 +1643,6 @@ defaultWindowTitle: WindowTitle {
 		{ "title_button_restore", titleButtonFgOver },
 	};
 	restoreIconActive: icon {
-		{ windowTitleButtonSize, titleButtonBgActive },
 		{ "title_button_restore", titleButtonFgActive },
 	};
 	restoreIconActiveOver: icon {
@@ -1657,7 +1651,6 @@ defaultWindowTitle: WindowTitle {
 	};
 	close: IconButton(windowTitleButtonClose) {
 		icon: icon {
-			{ windowTitleButtonSize, titleButtonCloseBg },
 			{ "title_button_close", titleButtonCloseFg },
 		};
 		iconOver: icon {
@@ -1666,7 +1659,6 @@ defaultWindowTitle: WindowTitle {
 		};
 	}
 	closeIconActive: icon {
-		{ windowTitleButtonSize, titleButtonCloseBgActive },
 		{ "title_button_close", titleButtonCloseFgActive },
 	};
 	closeIconActiveOver: icon {
