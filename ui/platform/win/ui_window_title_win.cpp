@@ -140,7 +140,7 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 
 void TitleWidget::paintEvent(QPaintEvent *e) {
 	// 标题栏与窗口外框共用底色，不区分激活态。
-	if (!window()->property("AyuWindowMaterialActive").toBool()) {
+	if (!window()->property("ExtrasWindowMaterialActive").toBool()) {
 		QPainter(this).fillRect(e->rect(), st::windowShellBg);
 	}
 }

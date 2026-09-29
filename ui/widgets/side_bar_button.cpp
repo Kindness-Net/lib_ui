@@ -192,7 +192,7 @@ void SideBarButton::paintEvent(QPaintEvent *e) {
 	const auto inner = innerRect();
 
 	// 侧栏与主窗口共用统一底色;选中态只靠图标与文字变色区分,不画底块。
-	if (!property("AyuWindowMaterialSurfaceActive").toBool()) {
+	if (!property("ExtrasWindowMaterialSurfaceActive").toBool()) {
 		p.fillRect(clip, st::windowBg);
 	}
 

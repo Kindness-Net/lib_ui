@@ -28,7 +28,7 @@ RpWindow::RpWindow(Surface surface, QWidget *parent)
 : RpWidget(parent)
 , _helper([&]() -> std::unique_ptr<Platform::BasicWindowHelper> {
 	if (surface == Surface::NativeMaterial) {
-		setProperty("AyuWindowMaterialCapable", true);
+		setProperty("ExtrasWindowMaterialCapable", true);
 		setAttribute(Qt::WA_NoSystemBackground, true);
 		setAttribute(Qt::WA_TranslucentBackground, true);
 	}

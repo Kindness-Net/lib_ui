@@ -4,11 +4,11 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu_ui_settings.h"
+#include "extras_ui_settings.h"
 
 #include <utility>
 
-namespace AyuUiSettings {
+namespace ExtrasUiSettings {
 
 QString monoFont;
 double wideMultiplier = 1.0;

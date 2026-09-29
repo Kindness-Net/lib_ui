@@ -36,8 +36,8 @@ PRIVATE
     fonts/fonts.qrc
     qt_conf/win.qrc
 
-    ayu/ayu_ui_settings.cpp
-    ayu/ayu_ui_settings.h
+    extras/extras_ui_settings.cpp
+    extras/extras_ui_settings.h
 
     ui/accessible/ui_accessible_factory.cpp
     ui/accessible/ui_accessible_factory.h

@@ -16,25 +16,25 @@
 #include <QtGui/QtEvents>
 #include <QtCore/QtMath>
 
-#include "ayu/ayu_ui_settings.h"
+#include "extras/extras_ui_settings.h"
 
 namespace Ui {
 namespace {
 
 int SwitchShift(not_null<const style::Toggle *> st) {
-	return AyuUiSettings::isMaterialSwitches() ? st->shift : st::defaultToggleShift;
+	return ExtrasUiSettings::isMaterialSwitches() ? st->shift : st::defaultToggleShift;
 }
 
 int SwitchDiameter(not_null<const style::Toggle *> st) {
-	return AyuUiSettings::isMaterialSwitches() ? st->diameter : st::defaultToggleDiameter;
+	return ExtrasUiSettings::isMaterialSwitches() ? st->diameter : st::defaultToggleDiameter;
 }
 
 int SwitchDiameter(not_null<const style::Check *> st) {
-	return AyuUiSettings::isMaterialSwitches() ? st->diameter : st::defaultToggleDiameter;
+	return ExtrasUiSettings::isMaterialSwitches() ? st->diameter : st::defaultToggleDiameter;
 }
 
 int SwitchDiameter(not_null<const style::Radio *> st) {
-	return AyuUiSettings::isMaterialSwitches() ? st->diameter : st::defaultToggleDiameter;
+	return ExtrasUiSettings::isMaterialSwitches() ? st->diameter : st::defaultToggleDiameter;
 }
 
 } // namespace
@@ -58,8 +58,8 @@ void AbstractCheckView::setChecked(bool checked, anim::type animated) {
 			[=] { if (_updateCallback) _updateCallback(); },
 			_checked ? 0. : 1.,
 			_checked ? 1. : 0.,
-			AyuUiSettings::isMaterialSwitches() ? _duration : st::defaultToggleDuration,
-			AyuUiSettings::isMaterialSwitches() ? anim::easeOutCubic : anim::linear);
+			ExtrasUiSettings::isMaterialSwitches() ? _duration : st::defaultToggleDuration,
+			ExtrasUiSettings::isMaterialSwitches() ? anim::easeOutCubic : anim::linear);
 	}
 	checkedChangedHook(animated);
 	if (changed) {
@@ -120,9 +120,9 @@ void ToggleView::paint(QPainter &p, int left, int top, int outerWidth) {
 	auto fgBrush = anim::brush(_st->untoggledFg, _st->toggledFg, toggled);
 
 	auto fgRectF = QRectF(fgRect);
-	if (AyuUiSettings::isMaterialSwitches()) {
-		const auto ayuToggleAnim = anim::interpolateToF(_st->animPadding, 0, toggled);
-		fgRectF.setRect(fgRectF.x() + ayuToggleAnim / 2., fgRectF.y() + ayuToggleAnim / 2., fgRectF.width() - ayuToggleAnim, fgRectF.height() - ayuToggleAnim);
+	if (ExtrasUiSettings::isMaterialSwitches()) {
+		const auto extrasToggleAnim = anim::interpolateToF(_st->animPadding, 0, toggled);
+		fgRectF.setRect(fgRectF.x() + extrasToggleAnim / 2., fgRectF.y() + extrasToggleAnim / 2., fgRectF.width() - extrasToggleAnim, fgRectF.height() - extrasToggleAnim);
 	}
 
 	p.setPen(Qt::NoPen);

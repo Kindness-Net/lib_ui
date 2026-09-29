@@ -432,7 +432,7 @@ void WindowHelper::init() {
 		if (state != Qt::WindowMinimized) {
 			const auto is = (state == Qt::WindowMaximized)
 				&& window()->testAttribute(Qt::WA_TranslucentBackground)
-				&& !window()->property("AyuWindowMaterialCapable").toBool();
+				&& !window()->property("ExtrasWindowMaterialCapable").toBool();
 			if (_isMaximizedAndTranslucent != is) {
 				_isMaximizedAndTranslucent = is;
 				updateCornersRounding();
@@ -469,7 +469,7 @@ bool WindowHelper::filterNativeEvent(
 	case WM_STYLECHANGING: {
 		if (wParam == WPARAM(GWL_STYLE)
 			&& !_title->isHidden()
-			&& window()->property("AyuWindowMaterialCapable").toBool()) {
+			&& window()->property("ExtrasWindowMaterialCapable").toBool()) {
 			// 保留系统窗口动画，仅关闭自绘标题栏下面的原生按钮。
 			auto &style = reinterpret_cast<STYLESTRUCT*>(lParam)->styleNew;
 			style = (style | WS_CAPTION) & ~WS_SYSMENU;
@@ -800,7 +800,7 @@ bool WindowHelper::nativeResize() const {
 	Expects(window()->windowHandle() != nullptr);
 
 	if (::Platform::IsWindows11OrGreater()) {
-		if (window()->property("AyuWindowMaterialCapable").toBool()) {
+		if (window()->property("ExtrasWindowMaterialCapable").toBool()) {
 			return true;
 		}
 		switch (window()->windowHandle()->surfaceType()) {
@@ -826,7 +826,7 @@ void WindowHelper::updateWindowFrameColors(bool active) {
 	const auto bg = active
 		? _title->st()->bgActive->c
 		: _title->st()->bg->c;
-	COLORREF bgRef = window()->property("AyuWindowMaterialActive").toBool()
+	COLORREF bgRef = window()->property("ExtrasWindowMaterialActive").toBool()
 		? COLORREF(0xFFFFFFFF)
 		: RGB(bg.red(), bg.green(), bg.blue());
 	DwmSetWindowAttribute(
@@ -885,7 +885,7 @@ void WindowHelper::updateMargins() {
 
 	RECT r{};
 	auto style = GetWindowLongPtr(_handle, GWL_STYLE);
-	if (window()->property("AyuWindowMaterialCapable").toBool()) {
+	if (window()->property("ExtrasWindowMaterialCapable").toBool()) {
 		// 系统标题条标志负责窗口动画；原生按钮仅在原生标题栏下显示。
 		const auto adjusted = _title->isHidden()
 			? (style | WS_CAPTION | WS_SYSMENU)

@@ -121,7 +121,7 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	const auto active = isActiveWindow();
-	if (!window()->property("AyuWindowMaterialActive").toBool()) {
+	if (!window()->property("ExtrasWindowMaterialActive").toBool()) {
 		p.fillRect(rect(), active ? _st->bgActive : _st->bg);
 	}
 

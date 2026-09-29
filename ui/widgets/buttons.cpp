@@ -981,7 +981,7 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	const auto paintOver = (isOver() || isDown()) && !isDisabled();
-	if (!property("AyuWindowMaterialSurfaceActive").toBool()) {
+	if (!property("ExtrasWindowMaterialSurfaceActive").toBool()) {
 		p.fillRect(e->rect(), _st.textBg);
 	}
 	auto shape = QPainterPath();
@@ -1006,7 +1006,7 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 }
 
 void SettingsButton::paintBg(Painter &p, const QRect &rect, bool over) const {
-	if (over || !property("AyuWindowMaterialSurfaceActive").toBool()) {
+	if (over || !property("ExtrasWindowMaterialSurfaceActive").toBool()) {
 		p.fillRect(rect, over ? _st.textBgOver : _st.textBg);
 	}
 }
