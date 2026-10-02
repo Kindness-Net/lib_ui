@@ -874,6 +874,12 @@ Fn<void()> SpoilerAnimation::repaintCallback() const {
 
 bool SpoilerAnimation::repaint(crl::time now) {
 	if (!_scheduled) {
+		// 粒子每 kDefaultFrameDuration 才换一帧，帧号不变时重绘只会画出同一帧。
+		if (_last && (_accumulated % kDefaultFrameDuration)
+			+ std::min(now - _last, kDefaultFrameDuration)
+				< kDefaultFrameDuration) {
+			return true;
+		}
 		_scheduled = true;
 		_repaint();
 	} else if (_animating && _last && _last + kAutoPauseTimeout <= now) {
