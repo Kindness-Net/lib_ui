@@ -207,6 +207,11 @@ void PopupMenu::embedIntoParent() {
 	setFocusPolicy(Qt::StrongFocus);
 	_useTransparency = true;
 	_scroll->setGraphicsEffect(new MenuSurface(_st.radius));
+	// Qt 5 会按不透明子控件的矩形跳过背景绘制，裁掉圆角处的阴影。
+	_menu->setAttribute(Qt::WA_OpaquePaintEvent, false);
+	if (_stashedContent) {
+		_stashedContent->menu->setAttribute(Qt::WA_OpaquePaintEvent, false);
+	}
 	if (owner != parentWidget()) {
 		QObject::connect(owner, &QObject::destroyed, this, [=] {
 			hideMenu(true);
@@ -1344,6 +1349,9 @@ void PopupMenu::finishSwitchAnimation() {
 }
 
 void PopupMenu::setupMenuWidget() {
+	if (_scroll->graphicsEffect()) {
+		_menu->setAttribute(Qt::WA_OpaquePaintEvent, false);
+	}
 	const auto paddingWrap = static_cast<PaddingWrap<Menu::Menu>*>(
 		_menu->parentWidget());
 	style::PaletteChanged(
