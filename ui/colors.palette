@@ -215,25 +215,25 @@ dialogsUnreadFgOver: dialogsUnreadFg; // chat list unread badge text with mouse 
 dialogsArchiveFgOver: #525252 | dialogsNameFgOver; // chat list archive name text with mouse over
 dialogsScamFgOver: dialogsDraftFgOver; // chat list scam label with mouse over
 
-dialogsBgActive: #91c7f4; // 对话选中底色使用强调色与列表底色各一半。
-dialogsNameFgActive: windowBoldFg; // chat list name text for current (active) chat
+dialogsBgActive: #1d7ac6; // 选中行用强调色实底，运行时由 ApplyAccentPalette 按强调色重算。
+dialogsNameFgActive: windowFgActive; // chat list name text for current (active) chat
 dialogsChatIconFgActive: dialogsNameFgActive; // chat list group or channel icon for current (active) chat
-dialogsDateFgActive: windowSubTextFg; // chat list date text for current (active) chat
-dialogsTextFgActive: dialogsTextFg; // chat list message text for current (active) chat
-dialogsTextFgServiceActive: dialogsTextFgService; // chat list group sender name text for current (active) chat
-dialogsDraftFgActive: dialogsDraftFg; // chat list draft label for current (active) chat
-dialogsVerifiedIconBgActive: windowBgActive; // chat list verified icon background for current (active) chat
-dialogsVerifiedIconFgActive: windowFgActive; // chat list verified icon check for current (active) chat
+dialogsDateFgActive: #d6e7f4; // chat list date text for current (active) chat
+dialogsTextFgActive: #e8f2f9; // chat list message text for current (active) chat
+dialogsTextFgServiceActive: windowFgActive; // chat list group sender name text for current (active) chat
+dialogsDraftFgActive: windowFgActive; // chat list draft label for current (active) chat
+dialogsVerifiedIconBgActive: windowFgActive; // chat list verified icon background for current (active) chat
+dialogsVerifiedIconFgActive: dialogsBgActive; // chat list verified icon check for current (active) chat
 dialogsSendingIconFgActive: #ffffff99; // chat list sending message icon (clock) for current (active) chat
-dialogsSentIconFgActive: windowActiveTextFg; // chat list sent message tick / double tick icon for current (active) chat
-dialogsUnreadBgActive: windowBgActive; // chat list unread badge background for not muted chat for current (active) chat
-dialogsUnreadBgMutedActive: dialogsUnreadBgMuted; // chat list unread badge background for muted chat for current (active) chat
-dialogsUnreadFgActive: windowFgActive; // chat list unread badge text for current (active) chat
-dialogsOnlineBadgeFgActive: dialogsOnlineBadgeFg; // chat list online status for current (active) chat
+dialogsSentIconFgActive: windowFgActive; // chat list sent message tick / double tick icon for current (active) chat
+dialogsUnreadBgActive: windowFgActive; // chat list unread badge background for not muted chat for current (active) chat
+dialogsUnreadBgMutedActive: #bbd6ed; // chat list unread badge background for muted chat for current (active) chat
+dialogsUnreadFgActive: dialogsBgActive; // chat list unread badge text for current (active) chat
+dialogsOnlineBadgeFgActive: windowFgActive; // chat list online status for current (active) chat
 dialogsScamFgActive: dialogsDraftFgActive; // chat list scam label for current (active) chat
 
 dialogsRippleBg: windowBgRipple; // chat list background ripple effect
-dialogsRippleBgActive: #cfe6f8; // chat list background ripple effect for current (active) chat
+dialogsRippleBgActive: #398acd; // chat list background ripple effect for current (active) chat
 
 searchedBarBg: windowBgOver; // search results bar background (in chats list, contacts box..)
 searchedBarFg: windowSubTextFgOver; // search results bar text (in chats list, contacts box..)
