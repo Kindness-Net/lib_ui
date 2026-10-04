@@ -644,7 +644,7 @@ walletTopIconRipple: #ffffff12; // wallet top menu icon ripple effect
 
 sideBarBg: windowBg; // filters side bar background
 sideBarBgActive: #eaf4fd; // filters side bar active background
-sideBarBgRipple: #e4e6e9; // filters side bar ripple effect
+sideBarBgRipple: #e4e6e980; // filters side bar ripple effect
 sideBarTextFg: #52677f; // filters side bar text
 sideBarTextFgActive: windowBgActive; // filters side bar active item text
 sideBarIconFg: #52677f; // filters side bar icon
