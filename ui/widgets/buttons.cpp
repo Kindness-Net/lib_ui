@@ -995,10 +995,14 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 		p.fillRect(e->rect(), _st.textBg);
 	}
 	auto shape = QPainterPath();
-	shape.addRoundedRect(
-		rect().marginsRemoved(st::settingsRowMargin),
-		st::settingsRowRadius,
-		st::settingsRowRadius);
+	if (property("settingsCardRow").toBool()) {
+		shape.addRect(rect());
+	} else {
+		shape.addRoundedRect(
+			rect().marginsRemoved(st::settingsRowMargin),
+			st::settingsRowRadius,
+			st::settingsRowRadius);
+	}
 	p.save();
 	p.setRenderHint(QPainter::Antialiasing);
 	p.setClipPath(shape, Qt::IntersectClip);
