@@ -66,7 +66,7 @@ void GenericBox::updateDimensions() {
 	const auto target = std::clamp(
 		_desiredHeight,
 		_minHeight,
-		_maxHeight ? _maxHeight : std::max(_minHeight, _desiredHeight));
+		_maxHeight ? _maxHeight : std::max(_minHeight, st::boxMaxListHeight));
 	const auto height = _heightAnimation.animating()
 		? anim::interpolate(
 			_animateHeightFrom,

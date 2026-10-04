@@ -44,6 +44,7 @@ public:
 	void setLayerType(bool layerType) override;
 	void setStyle(const style::Box &st) override;
 	const style::Box &style() override;
+	[[nodiscard]] const style::RoundButton &buttonStyle() const override;
 	void setTitle(
 		rpl::producer<TextWithEntities> title,
 		Text::MarkedContext context) override;
@@ -113,6 +114,7 @@ protected:
 
 private:
 	struct LoadingProgress;
+	struct ButtonsLayout;
 
 	void paintAdditionalTitle(Painter &p);
 	void updateTitlePosition();
@@ -120,20 +122,27 @@ private:
 	[[nodiscard]] const style::Box &st() const;
 	[[nodiscard]] bool hasTitle() const;
 	[[nodiscard]] int titleHeight() const;
+	[[nodiscard]] int titleRightSkip() const;
+	[[nodiscard]] bool bottomAnchored() const;
+	[[nodiscard]] ButtonsLayout buttonsLayout() const;
 	[[nodiscard]] int buttonsHeight() const;
-	[[nodiscard]] int buttonsTop() const;
 	[[nodiscard]] int contentTop() const;
 	[[nodiscard]] int countFullHeight() const;
 	[[nodiscard]] int countRealHeight() const;
 	[[nodiscard]] QRect loadingRect() const;
 	void updateMaxRealHeight();
 	void updateSize();
+	void scheduleButtonsUpdate();
 
 	const style::Box *_st = nullptr;
 	not_null<LayerStackDelegate*> _layer;
 	rpl::variable<int> _realHeightMax;
 	rpl::variable<int> _contentHeightMax;
 	int _fullHeight = 0;
+	int _boxWidth = 0;
+	bool _dimensionsSet = false;
+	bool _updatingButtons = false;
+	bool _buttonsUpdateScheduled = false;
 	bool _layerType = false;
 
 	bool _noContentMargin = false;
@@ -141,6 +150,7 @@ private:
 	object_ptr<BoxContent> _content;
 
 	RoundRect _roundRect;
+	RoundRect _drawerRoundRect;
 	object_ptr<FlatLabel> _title = { nullptr };
 	Fn<TextWithEntities()> _titleFactory;
 	rpl::variable<QString> _additionalTitle;

@@ -67,6 +67,7 @@ public:
 	virtual void setLayerType(bool layerType) = 0;
 	virtual void setStyle(const style::Box &st) = 0;
 	virtual const style::Box &style() = 0;
+	[[nodiscard]] virtual const style::RoundButton &buttonStyle() const = 0;
 	virtual void setTitle(
 		rpl::producer<TextWithEntities> title,
 		Text::MarkedContext context = {}) = 0;

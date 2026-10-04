@@ -23,9 +23,12 @@ ServiceCheck {
 
 Box {
 	buttonPadding: margins;
+	buttonSkip: pixels;
 	buttonHeight: pixels;
 	buttonWide: bool;
 	button: RoundButton;
+	buttonSecondary: RoundButton;
+	buttonLeft: RoundButton;
 	margin: margins;
 	title: FlatLabel;
 	bg: color;
@@ -36,16 +39,36 @@ Box {
 
 boxDuration: 200;
 boxRadius: 12px;
+boxDrawerRadius: 18px;
+boxNarrowWidth: 420px;
 
 boxButtonFont: font(boxFontSize semibold);
 defaultBoxButtonTextStyle: TextStyle(semiboldTextStyle) {
 	font: font(14px semibold);
 }
 defaultBoxButton: RoundButton(defaultLightButton) {
-	width: -30px;
-	height: 34px;
-	textTop: 7px;
+	width: -28px;
+	height: 36px;
+	radius: 10px;
+	textTop: 8px;
 	style: defaultBoxButtonTextStyle;
+	textBg: transparent;
+}
+activeBoxButton: RoundButton(defaultBoxButton) {
+	textFg: windowFgActive;
+	textFgOver: windowFgActive;
+	numbersTextFg: activeButtonSecondaryFg;
+	numbersTextFgOver: activeButtonSecondaryFgOver;
+	textBg: windowBgActive;
+	textBgOver: activeButtonBgOver;
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: activeButtonBgRipple;
+	}
+}
+leftBoxButton: RoundButton(defaultBoxButton) {
+	textFg: windowSubTextFg;
+	textFgOver: windowActiveTextFg;
+	textBgOver: windowBgOver;
 }
 
 boxLabelStyle: TextStyle(boxTextStyle) {
@@ -84,27 +107,40 @@ boxTitle: FlatLabel(defaultFlatLabel) {
 		font: boxTitleFont;
 	}
 }
-boxTitlePosition: point(24px, 13px);
+boxTitlePosition: point(20px, 13px);
 boxTitleHeight: 48px;
+boxTitleButtonsRight: 8px;
+boxTitleButtonsSkip: 4px;
 boxTitleAdditionalSkip: 9px;
 boxTitleAdditionalFont: normalFont;
-boxScroll: defaultSolidScroll;
+boxScroll: ScrollArea(defaultSolidScroll) {
+	bg: transparent;
+	bgOver: transparent;
+	barBg: strokeFgStrong;
+	barBgOver: windowSubTextFg;
+	width: 8px;
+	deltax: 2px;
+	deltat: 2px;
+	deltab: 2px;
+}
 
-boxRowPadding: margins(24px, 0px, 24px, 0px);
+boxRowPadding: margins(20px, 0px, 20px, 0px);
 
 boxTopMargin: 8px;
 
 boxTitleCloseIcon: icon {{ "box_button_close", boxTitleCloseFg }};
 boxTitleCloseIconOver: icon {{ "box_button_close", boxTitleCloseFgOver }};
 boxTitleClose: IconButton(defaultIconButton) {
-	width: boxTitleHeight;
-	height: boxTitleHeight;
+	width: 38px;
+	height: 38px;
 
 	icon: boxTitleCloseIcon;
 	iconOver: boxTitleCloseIconOver;
 
-	rippleAreaPosition: point(4px, 4px);
-	rippleAreaSize: 40px;
+	bgOver: windowBgOver;
+	duration: 120;
+	rippleAreaPosition: point(0px, 0px);
+	rippleAreaSize: 38px;
 	ripple: defaultRippleAnimationBgOver;
 }
 boxTitleMenu: IconButton(boxTitleClose) {
@@ -122,15 +158,18 @@ boxOptionListSkip: 20px;
 
 boxWidth: 320px;
 boxWideWidth: 364px;
-boxPadding: margins(24px, 14px, 24px, 8px);
+boxPadding: margins(20px, 4px, 20px, 8px);
 boxMaxListHeight: 492px;
 boxLittleSkip: 10px;
 boxMediumSkip: 20px;
 
 defaultBox: Box {
-	buttonPadding: margins(6px, 10px, 10px, 10px);
-	buttonHeight: 34px;
-	button: defaultBoxButton;
+	buttonPadding: margins(12px, 10px, 12px, 12px);
+	buttonSkip: 8px;
+	buttonHeight: 36px;
+	button: activeBoxButton;
+	buttonSecondary: defaultBoxButton;
+	buttonLeft: leftBoxButton;
 	margin: margins(0px, 10px, 0px, 10px);
 	bg: boxBg;
 	title: boxTitle;

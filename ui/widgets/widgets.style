@@ -350,6 +350,7 @@ OutlineButton {
 IconButton {
 	width: pixels;
 	height: pixels;
+	bgOver: color;
 
 	icon: icon;
 	iconOver: icon;

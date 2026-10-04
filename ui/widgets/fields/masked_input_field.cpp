@@ -150,14 +150,24 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 
 	auto r = rect().intersected(e->rect());
 	p.fillRect(r, _st.textBg);
-	if (_st.border) {
+	if (_st.border && !_st.borderRadius) {
 		p.fillRect(0, height() - _st.border, width(), _st.border, _st.borderFg->b);
 	}
 	auto errorDegree = _a_error.value(_error ? 1. : 0.);
 	auto focusedDegree = _a_focused.value(_focused ? 1. : 0.);
 	auto borderShownDegree = _a_borderShown.value(1.);
 	auto borderOpacity = _a_borderOpacity.value(_borderVisible ? 1. : 0.);
-	if (_st.borderActive && (borderOpacity > 0.)) {
+	if (_st.borderRadius) {
+		const auto border = anim::interpolate(_st.border, _st.borderActive, borderOpacity);
+		const auto half = border / 2.;
+		auto hq = PainterHighQualityEnabler(p);
+		const auto active = anim::color(_st.borderFgActive, _st.borderFgError, errorDegree);
+		p.setPen(QPen(anim::color(_st.borderFg->c, active, borderOpacity), border));
+		p.setBrush(anim::brush(_st.textBg, _st.textBgActive, focusedDegree));
+		p.drawRoundedRect(QRectF(rect()).adjusted(half, half, -half, -half),
+			_st.borderRadius - half, _st.borderRadius - half);
+	}
+	if (!_st.borderRadius && _st.borderActive && (borderOpacity > 0.)) {
 		auto borderStart = std::clamp(_borderAnimationStart, 0, width());
 		auto borderFrom
 			= int(base::SafeRound(borderStart * (1. - borderShownDegree)));

@@ -651,9 +651,19 @@ float64 IconButton::iconOverOpacity() const {
 void IconButton::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
+	const auto overIconOpacity = iconOverOpacity();
+	if (_st.bgOver && overIconOpacity > 0.) {
+		const auto highQuality = PainterHighQualityEnabler(p);
+		p.setOpacity(overIconOpacity);
+		p.setPen(Qt::NoPen);
+		p.setBrush(_st.bgOver);
+		p.drawEllipse(QRect(
+			_st.rippleAreaPosition,
+			QSize(_st.rippleAreaSize, _st.rippleAreaSize)));
+		p.setOpacity(1.);
+	}
 	paintRipple(p, _st.rippleAreaPosition, _rippleColorOverride ? &(*_rippleColorOverride)->c : nullptr);
 
-	const auto overIconOpacity = iconOverOpacity();
 	const auto overIcon = [&] {
 		if (_iconOverrideOver) {
 			return _iconOverrideOver;

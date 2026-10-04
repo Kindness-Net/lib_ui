@@ -21,6 +21,14 @@ windowActiveTextFg: #238fe8; // online blue: fallback for active text like onlin
 windowShadowFg: #000000; // black: fallback for shadow
 windowShadowFgFallback: #e7eef5; // gray: fallback for shadow without opacity
 
+// 设置页与弹窗的卡片层次、细描边和浅强调色。
+cardBg: #ffffff | windowBg;
+cardBgSunken: #f6f9fc | windowBgOver;
+strokeFg: #203f601a | windowShadowFgFallback;
+strokeFgStrong: #203f602e | windowSubTextFg;
+accentSoft: #238fe81a | windowBgOver;
+accentSoftStrong: #238fe829 | windowBgRipple;
+
 shadowFg: #203f6010; // most shadows (including opacity)
 slideFadeOutBg: #0000003c; // slide animation (chat to profile) fade out filling
 slideFadeOutShadowFg: windowShadowFg; // slide animation (chat to profile) fade out right section shadow

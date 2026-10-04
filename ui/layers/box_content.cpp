@@ -129,7 +129,7 @@ QPointer<RoundButton> BoxContent::addButton(
 	return addButton(
 		std::move(text),
 		std::move(clickCallback),
-		getDelegate()->style().button);
+		getDelegate()->buttonStyle());
 }
 
 QPointer<RoundButton> BoxContent::addButton(
@@ -165,7 +165,7 @@ QPointer<RoundButton> BoxContent::addLeftButton(
 	return addLeftButton(
 		std::move(text),
 		std::move(clickCallback),
-		getDelegate()->style().button);
+		getDelegate()->style().buttonLeft);
 }
 
 QPointer<RoundButton> BoxContent::addLeftButton(
