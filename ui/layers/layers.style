@@ -138,6 +138,7 @@ boxTitleClose: IconButton(defaultIconButton) {
 	iconOver: boxTitleCloseIconOver;
 
 	bgOver: windowBgOver;
+	fillOnHover: true;
 	duration: 120;
 	rippleAreaPosition: point(0px, 0px);
 	rippleAreaSize: 38px;

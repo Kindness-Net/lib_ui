@@ -351,6 +351,7 @@ IconButton {
 	width: pixels;
 	height: pixels;
 	bgOver: color;
+	fillOnHover: bool;
 
 	icon: icon;
 	iconOver: icon;

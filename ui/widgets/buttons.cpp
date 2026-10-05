@@ -652,7 +652,7 @@ void IconButton::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	const auto overIconOpacity = iconOverOpacity();
-	if (_st.bgOver && overIconOpacity > 0.) {
+	if (_st.fillOnHover && overIconOpacity > 0.) {
 		const auto highQuality = PainterHighQualityEnabler(p);
 		p.setOpacity(overIconOpacity);
 		p.setPen(Qt::NoPen);
