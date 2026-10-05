@@ -995,7 +995,11 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 		p.fillRect(e->rect(), _st.textBg);
 	}
 	auto shape = QPainterPath();
-	if (property("settingsCardRow").toBool()) {
+	auto card = property("settingsCardRow").toBool();
+	for (auto parent = parentWidget(); !card && parent; parent = parent->parentWidget()) {
+		card = parent->property("settingsCardGroup").toBool();
+	}
+	if (card) {
 		shape.addRect(rect());
 	} else {
 		shape.addRoundedRect(
