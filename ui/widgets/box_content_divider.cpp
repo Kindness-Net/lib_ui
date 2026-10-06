@@ -27,6 +27,10 @@ BoxContentDivider::BoxContentDivider(
 }
 
 void BoxContentDivider::paintEvent(QPaintEvent *e) {
+	// 窗口材质表面不画分组条，背景和线条都交给材质。
+	if (property("ExtrasWindowMaterialSurfaceActive").toBool()) {
+		return;
+	}
 	QPainter p(this);
 
 	p.fillRect(e->rect(), _st.bg);

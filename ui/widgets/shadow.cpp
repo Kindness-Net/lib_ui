@@ -137,6 +137,10 @@ PlainShadow::PlainShadow(QWidget *parent, style::color color)
 }
 
 void PlainShadow::paintEvent(QPaintEvent *e) {
+	// 窗口材质表面不画分隔线。
+	if (property("ExtrasWindowMaterialSurfaceActive").toBool()) {
+		return;
+	}
 	QPainter(this).fillRect(e->rect(), _color);
 }
 
