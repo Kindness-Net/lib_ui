@@ -133,6 +133,10 @@ public:
 	[[nodiscard]] virtual crl::time animationDuration() const {
 		return 0;
 	}
+	// 透明菜单直接透出窗口材质，动画缓存不能叠加底下的界面。
+	[[nodiscard]] virtual bool hasWindowBackdrop() const {
+		return false;
+	}
 
 	void closeLayer() {
 		if (const auto callback = base::take(_closedCallback)) {
