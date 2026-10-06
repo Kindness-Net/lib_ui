@@ -18,6 +18,7 @@ namespace Ui {
 class RippleAnimation;
 
 [[nodiscard]] QImage SideBarLockIcon(const style::color &fg);
+[[nodiscard]] QImage SideBarLockIcon(QColor fg);
 
 class SideBarButton final : public Ui::RippleButton {
 public:
@@ -34,6 +35,8 @@ public:
 		const style::icon *iconOverride,
 		const style::icon *iconOverrideActive = nullptr);
 	void setLocked(bool locked);
+	// 只替换未选中时的图标与文字颜色，选中态保持样式配色。
+	void setColorOverride(std::optional<QColor> fg);
 	void setShowIcon(bool shown);
 	void setShowText(bool shown);
 
@@ -64,6 +67,7 @@ private:
 	const style::SideBarButton &_st;
 	const style::icon *_iconOverride = nullptr;
 	const style::icon *_iconOverrideActive = nullptr;
+	std::optional<QColor> _colorOverride;
 	Ui::Text::String _text;
 	Ui::Text::String _badge;
 	QImage _iconCache;

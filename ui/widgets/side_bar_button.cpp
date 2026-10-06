@@ -130,6 +130,16 @@ void SideBarButton::setLocked(bool locked) {
 	update();
 }
 
+void SideBarButton::setColorOverride(std::optional<QColor> fg) {
+	if (_colorOverride == fg) {
+		return;
+	}
+	_colorOverride = fg;
+	_iconCache = QImage();
+	_lock.iconCache = QImage();
+	update();
+}
+
 bool SideBarButton::locked() const {
 	return _lock.locked;
 }
@@ -209,12 +219,16 @@ void SideBarButton::paintEvent(QPaintEvent *e) {
 		if (_iconCacheBadgeWidth || (_lock.locked && !_showText)) {
 			validateIconCache();
 			p.drawImage(x, y, _active ? _iconCacheActive : _iconCache);
+		} else if (!_active && _colorOverride) {
+			icon.paint(p, x, y, width(), *_colorOverride);
 		} else {
 			icon.paint(p, x, y, width());
 		}
 	}
 	if (_showText) {
-		p.setPen(_active ? _st.textFgActive : _st.textFg);
+		p.setPen(_active
+			? _st.textFgActive->c
+			: _colorOverride.value_or(_st.textFg->c));
 		_text.draw(p, {
 			.position = { _st.textSkip, _st.textTop },
 			.availableWidth = (width() - 2 * _st.textSkip),
@@ -317,7 +331,11 @@ void SideBarButton::validateIconCache() {
 	image.fill(Qt::transparent);
 	{
 		auto p = QPainter(&image);
-		icon.paint(p, 0, 0, icon.width());
+		if (!_active && _colorOverride) {
+			icon.paint(p, 0, 0, icon.width(), *_colorOverride);
+		} else {
+			icon.paint(p, 0, 0, icon.width());
+		}
 		p.setCompositionMode(QPainter::CompositionMode_Source);
 		auto hq = PainterHighQualityEnabler(p);
 		if (_iconCacheBadgeWidth) {
@@ -360,10 +378,16 @@ void SideBarButton::validateLockIconCache() {
 		return;
 	}
 	(_active ? _lock.iconCacheActive : _lock.iconCache)
-		= SideBarLockIcon(_st.textFg);
+		= SideBarLockIcon(_active
+			? _st.textFg->c
+			: _colorOverride.value_or(_st.textFg->c));
 }
 
 QImage SideBarLockIcon(const style::color &fg) {
+	return SideBarLockIcon(fg->c);
+}
+
+QImage SideBarLockIcon(QColor fg) {
 	const auto &size = st::sideBarButtonLockSize;
 	const auto arcPen = QPen(
 		fg,

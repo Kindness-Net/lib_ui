@@ -638,6 +638,12 @@ void IconButton::setIconColorOverride(std::optional<QColor> colorOverride) {
 	update();
 }
 
+void IconButton::setIconOverColorOverride(
+		std::optional<QColor> colorOverride) {
+	_iconOverColorOverride = colorOverride;
+	update();
+}
+
 void IconButton::setRippleColorOverride(const style::color *colorOverride) {
 	_rippleColorOverride = colorOverride;
 }
@@ -688,20 +694,24 @@ void IconButton::paintEvent(QPaintEvent *e) {
 	if (position.y() < 0) {
 		position.setY((height() - icon->height()) / 2);
 	}
-	if (_iconColorOverride) {
-		icon->paint(p, position, width(), *_iconColorOverride);
-	} else {
-		icon->paint(p, position, width());
-	}
+	const auto overColor = _iconOverColorOverride
+		? _iconOverColorOverride
+		: _iconColorOverride;
+	const auto paintIcon = [&](
+			not_null<const style::icon*> which,
+			const std::optional<QColor> &color) {
+		if (color) {
+			which->paint(p, position, width(), *color);
+		} else {
+			which->paint(p, position, width());
+		}
+	};
+	paintIcon(icon, (overIconOpacity == 1.) ? overColor : _iconColorOverride);
 	if (overIconOpacity > 0. && overIconOpacity < 1.) {
 		const auto iconOver = overIcon();
-		if (iconOver != icon) {
+		if (iconOver != icon || overColor != _iconColorOverride) {
 			p.setOpacity(overIconOpacity);
-			if (_iconColorOverride) {
-				iconOver->paint(p, position, width(), *_iconColorOverride);
-			} else {
-				iconOver->paint(p, position, width());
-			}
+			paintIcon(iconOver, overColor);
 		}
 	}
 }

@@ -231,6 +231,8 @@ public:
 	// Pass nullptr to restore the default icon.
 	void setIconOverride(const style::icon *iconOverride, const style::icon *iconOverOverride = nullptr);
 	void setIconColorOverride(std::optional<QColor> colorOverride);
+	// 悬停态单独覆盖颜色，未设置时沿用普通态的覆盖色。
+	void setIconOverColorOverride(std::optional<QColor> colorOverride);
 	void setRippleColorOverride(const style::color *colorOverride);
 
 protected:
@@ -249,6 +251,7 @@ private:
 	const style::icon *_iconOverrideOver = nullptr;
 	const style::color *_rippleColorOverride = nullptr;
 	std::optional<QColor> _iconColorOverride;
+	std::optional<QColor> _iconOverColorOverride;
 
 	Ui::Animations::Simple _a_over;
 
