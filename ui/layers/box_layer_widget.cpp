@@ -6,6 +6,7 @@
 //
 #include "ui/layers/box_layer_widget.h"
 
+#include "ui/layers/box_layer_shadow.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
@@ -241,14 +242,14 @@ void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 
 	const auto clip = e->rect();
 	const auto drawer = bottomAnchored();
-	const auto radius = drawer ? st::boxDrawerRadius : st::boxRadius;
+	const auto radius = cornerRadius();
 	const auto &roundRect = drawer ? _drawerRoundRect : _roundRect;
 	const auto paintTopRounded = !(_customCornersFilling & RectPart::FullTop)
 		&& clip.intersects(QRect(0, 0, width(), radius));
 	const auto paintBottomRounded = !drawer && !(_customCornersFilling
 		& RectPart::FullBottom)
 		&& clip.intersects(
-			QRect(0, height() - st::boxRadius, width(), st::boxRadius));
+			QRect(0, height() - radius, width(), radius));
 	if (paintTopRounded || paintBottomRounded) {
 		roundRect.paint(p, rect(), RectPart::None
 			| (paintTopRounded ? RectPart::FullTop : RectPart::None)
@@ -499,6 +500,7 @@ void BoxLayerWidget::updateTitlePosition() {
 
 void BoxLayerWidget::setCustomCornersFilling(RectParts corners) {
 	_customCornersFilling = corners;
+	updateContentOpaque();
 	update();
 }
 
@@ -628,7 +630,8 @@ void BoxLayerWidget::setDimensions(
 					move(newGeometry.left(), newTop);
 				}
 			}
-			parent->update(oldGeometry.united(geometry()).marginsAdded(st::boxRoundShadow.extend));
+			parent->update(oldGeometry.united(geometry()).marginsAdded(
+				BoxLayerShadowExtend()));
 		} else {
 			resize(newWidth, countRealHeight());
 		}
@@ -648,6 +651,23 @@ int BoxLayerWidget::countFullHeight() const {
 	return contentTop() + _maxContentHeight + buttonsHeight();
 }
 
+int BoxLayerWidget::cornerRadius() const {
+	return bottomAnchored() ? st::boxDrawerRadius : st::boxRadius;
+}
+
+// 内容区伸进本控件负责的圆角范围时不能整块填矩形底色，否则盖住圆角。
+void BoxLayerWidget::updateContentOpaque() {
+	const auto radius = cornerRadius();
+	const auto topRounded = !(_customCornersFilling & RectPart::FullTop);
+	const auto bottomRounded = !bottomAnchored()
+		&& !(_customCornersFilling & RectPart::FullBottom);
+	_content->setAttribute(
+		Qt::WA_OpaquePaintEvent,
+		!_noContentMargin
+			&& (!topRounded || contentTop() >= radius)
+			&& (!bottomRounded || buttonsHeight() >= radius));
+}
+
 int BoxLayerWidget::contentTop() const {
 	return hasTitle()
 		? titleHeight()
@@ -663,6 +683,7 @@ void BoxLayerWidget::resizeEvent(QResizeEvent *e) {
 	const auto top = contentTop();
 	_content->resize(width(), std::max(0, height() - top - buttonsHeight()));
 	_content->moveToLeft(0, top);
+	updateContentOpaque();
 
 	LayerWidget::resizeEvent(e);
 }

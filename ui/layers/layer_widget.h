@@ -137,6 +137,8 @@ public:
 	[[nodiscard]] virtual bool hasWindowBackdrop() const {
 		return false;
 	}
+	// 图层自身的圆角，背景层按它生成阴影。
+	[[nodiscard]] virtual int cornerRadius() const;
 
 	void closeLayer() {
 		if (const auto callback = base::take(_closedCallback)) {

@@ -77,6 +77,7 @@ public:
 		if (_noContentMargin != noContentMargin) {
 			_noContentMargin = noContentMargin;
 			updateSize();
+			updateContentOpaque();
 		}
 	}
 
@@ -95,6 +96,7 @@ public:
 	[[nodiscard]] crl::time animationDuration() const override {
 		return _content->layerAnimationDuration();
 	}
+	[[nodiscard]] int cornerRadius() const override;
 
 	rpl::producer<int> layerHeightMaxValue() override;
 	rpl::producer<int> contentHeightMaxValue() override;
@@ -132,6 +134,7 @@ private:
 	[[nodiscard]] QRect loadingRect() const;
 	void updateMaxRealHeight();
 	void updateSize();
+	void updateContentOpaque();
 	void scheduleButtonsUpdate();
 
 	const style::Box *_st = nullptr;

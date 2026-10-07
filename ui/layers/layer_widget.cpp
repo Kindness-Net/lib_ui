@@ -6,7 +6,6 @@
 //
 #include "ui/layers/layer_widget.h"
 
-#include "ui/cached_special_layer_shadow_corners.h"
 #include "ui/layers/box_layer_widget.h"
 #include "ui/widgets/shadow.h"
 #include "ui/image/image_prepare.h"
@@ -72,6 +71,81 @@ void PaintMainMenuShadow(QPainter &p, int right, int height, int outerw) {
 	return result;
 }
 
+// 两类图层各用一份阴影缓存，圆角不同时不会互相冲掉。
+[[nodiscard]] const BoxShadow &SpecialLayerShadow() {
+	static const auto result = BoxShadow(st::boxRoundShadow);
+	return result;
+}
+
+[[nodiscard]] const BoxShadow &LayerShadow() {
+	static const auto result = BoxShadow(st::boxRoundShadow);
+	return result;
+}
+
+// 贴着容器边缘的一侧不画阴影，也不留阴影空间。
+[[nodiscard]] RectParts ShadowSides(const QRect &box, const QRect &outer) {
+	return RectPart::None
+		| ((box.x() > outer.x()) ? RectPart::Left : RectPart::None)
+		| ((box.y() > outer.y()) ? RectPart::Top : RectPart::None)
+		| ((box.x() + box.width() < outer.x() + outer.width())
+			? RectPart::Right
+			: RectPart::None)
+		| ((box.y() + box.height() < outer.y() + outer.height())
+			? RectPart::Bottom
+			: RectPart::None);
+}
+
+[[nodiscard]] QMargins ShadowExtend(
+		const BoxShadow &shadow,
+		RectParts sides) {
+	const auto full = shadow.extend();
+	return {
+		(sides & RectPart::Left) ? full.left() : 0,
+		(sides & RectPart::Top) ? full.top() : 0,
+		(sides & RectPart::Right) ? full.right() : 0,
+		(sides & RectPart::Bottom) ? full.bottom() : 0,
+	};
+}
+
+// 不画阴影的一侧连同圆角推到可见区域外，其余各边按图层圆角生成。
+void PaintLayerShadow(
+		QPainter &p,
+		const BoxShadow &shadow,
+		const QRect &box,
+		int radius,
+		RectParts sides) {
+	const auto skip = shadow.extend()
+		+ QMargins(radius, radius, radius, radius);
+	shadow.paint(p, box.marginsAdded({
+		(sides & RectPart::Left) ? 0 : skip.left(),
+		(sides & RectPart::Top) ? 0 : skip.top(),
+		(sides & RectPart::Right) ? 0 : skip.right(),
+		(sides & RectPart::Bottom) ? 0 : skip.bottom(),
+	}), radius);
+}
+
+[[nodiscard]] QPixmap GrabLayer(
+		not_null<LayerWidget*> layer,
+		const BoxShadow &shadow,
+		const QRect &outer) {
+	SendPendingMoveResizeEvents(layer);
+	const auto sides = ShadowSides(layer->geometry(), outer);
+	const auto extend = ShadowExtend(shadow, sides);
+	const auto inner = QRect(
+		QPoint(extend.left(), extend.top()),
+		layer->size());
+	const auto ratio = style::DevicePixelRatio();
+	auto result = QPixmap(inner.marginsAdded(extend).size() * ratio);
+	result.setDevicePixelRatio(ratio);
+	result.fill(Qt::transparent);
+	{
+		auto p = QPainter(&result);
+		PaintLayerShadow(p, shadow, inner, layer->cornerRadius(), sides);
+		RenderWidget(p, layer, inner.topLeft());
+	}
+	return result;
+}
+
 } // namespace
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
@@ -82,7 +156,11 @@ public:
 		_doneCallback = std::move(callback);
 	}
 
-	void setLayerBoxes(const QRect &specialLayerBox, const QRect &layerBox);
+	void setLayerBoxes(
+		const QRect &specialLayerBox,
+		int specialLayerRadius,
+		const QRect &layerBox,
+		int layerRadius);
 	void setCacheImages(
 		QPixmap &&bodyCache,
 		QPixmap &&mainMenuCache,
@@ -133,6 +211,8 @@ private:
 
 	QRect _specialLayerBox, _specialLayerCacheBox;
 	QRect _layerBox, _layerCacheBox;
+	int _specialLayerRadius = 0;
+	int _layerRadius = 0;
 	int _mainMenuRight = 0;
 
 	bool _mainMenuShown = false;
@@ -279,9 +359,15 @@ void LayerStackWidget::BackgroundWidget::checkWasShown(bool wasShown) {
 	}
 }
 
-void LayerStackWidget::BackgroundWidget::setLayerBoxes(const QRect &specialLayerBox, const QRect &layerBox) {
+void LayerStackWidget::BackgroundWidget::setLayerBoxes(
+		const QRect &specialLayerBox,
+		int specialLayerRadius,
+		const QRect &layerBox,
+		int layerRadius) {
 	_specialLayerBox = specialLayerBox;
+	_specialLayerRadius = specialLayerRadius;
 	_layerBox = layerBox;
+	_layerRadius = layerRadius;
 	update();
 }
 
@@ -335,22 +421,12 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	if (_specialLayerCache.isNull() && !specialLayerBox.isEmpty()) {
 		// All cache images are taken together with their shadows,
 		// so we paint shadow only when there is no cache.
-		auto sides = RectPart::Left | RectPart::Right;
-		auto topCorners = (specialLayerBox.y() > 0);
-		auto bottomCorners = (specialLayerBox.y() + specialLayerBox.height() < height());
-		if (topCorners) {
-			sides |= RectPart::Top;
-		}
-		if (bottomCorners) {
-			sides |= RectPart::Bottom;
-		}
-		if (topCorners || bottomCorners) {
-			p.setClipRegion(QRegion(rect()) - specialLayerBox.marginsRemoved(QMargins(st::boxRadius, 0, st::boxRadius, 0)) - specialLayerBox.marginsRemoved(QMargins(0, st::boxRadius, 0, st::boxRadius)));
-		}
-		Ui::Shadow::paint(p, specialLayerBox, width(), st::boxRoundShadow, Ui::SpecialLayerShadowCorners(), sides);
-		if (topCorners || bottomCorners) {
-			p.setClipping(false);
-		}
+		PaintLayerShadow(
+			p,
+			SpecialLayerShadow(),
+			specialLayerBox,
+			_specialLayerRadius,
+			ShadowSides(specialLayerBox, rect()));
 	}
 
 	if (!layerBox.isEmpty() && !_specialLayerCache.isNull() && overSpecialOpacity < bgOpacity) {
@@ -380,9 +456,13 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 
 	if (!_specialLayerCache.isNull() && specialLayerOpacity > 0) {
 		p.setOpacity(specialLayerOpacity);
-		auto cacheLeft = specialLayerBox.x() - st::boxRoundShadow.extend.left();
-		auto cacheTop = specialLayerBox.y() - (specialLayerBox.y() > 0 ? st::boxRoundShadow.extend.top() : 0);
-		p.drawPixmapLeft(cacheLeft, cacheTop, width(), _specialLayerCache);
+		const auto extend = ShadowExtend(
+			SpecialLayerShadow(),
+			ShadowSides(_specialLayerCacheBox, rect()));
+		p.drawPixmapLeft(
+			specialLayerBox.topLeft() - QPoint(extend.left(), extend.top()),
+			width(),
+			_specialLayerCache);
 	}
 	if (!layerBox.isEmpty()) {
 		if (!_specialLayerCache.isNull()) {
@@ -391,12 +471,23 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 		}
 		if (_layerCache.isNull()) {
 			p.setOpacity(layerOpacity);
-			Ui::Shadow::paint(p, layerBox, width(), st::boxRoundShadow);
+			PaintLayerShadow(
+				p,
+				LayerShadow(),
+				layerBox,
+				_layerRadius,
+				ShadowSides(layerBox, rect()));
 		}
 	}
 	if (!_layerCache.isNull() && layerOpacity > 0) {
 		p.setOpacity(layerOpacity);
-		p.drawPixmapLeft(layerBox.topLeft() - QPoint(st::boxRoundShadow.extend.left(), st::boxRoundShadow.extend.top()), width(), _layerCache);
+		const auto extend = ShadowExtend(
+			LayerShadow(),
+			ShadowSides(_layerCacheBox, rect()));
+		p.drawPixmapLeft(
+			layerBox.topLeft() - QPoint(extend.left(), extend.top()),
+			width(),
+			_layerCache);
 	}
 	if (!_mainMenuCache.isNull() && mainMenuRight > 0) {
 		p.setOpacity(1.);
@@ -447,6 +538,10 @@ LayerStackWidget::LayerStackWidget(QWidget *parent, ShowFactory showFactory)
 	setGeometry(parentWidget()->rect());
 	hide();
 	_background->setDoneCallback([this] { animationDone(); });
+}
+
+int LayerWidget::cornerRadius() const {
+	return st::boxRadius;
 }
 
 void LayerWidget::setInnerFocus() {
@@ -627,19 +722,14 @@ void LayerStackWidget::setCacheImages() {
 	auto bodyCache = QPixmap(), mainMenuCache = QPixmap();
 	auto specialLayerCache = QPixmap();
 	if (_specialLayer) {
-		Ui::SendPendingMoveResizeEvents(_specialLayer);
-		auto sides = RectPart::Left | RectPart::Right;
-		if (_specialLayer->y() > 0) {
-			sides |= RectPart::Top;
-		}
-		if (_specialLayer->y() + _specialLayer->height() < height()) {
-			sides |= RectPart::Bottom;
-		}
-		specialLayerCache = Ui::Shadow::grab(_specialLayer, st::boxRoundShadow, sides);
+		specialLayerCache = GrabLayer(
+			_specialLayer.data(),
+			SpecialLayerShadow(),
+			rect());
 	}
 	auto layerCache = QPixmap();
-	if (auto layer = currentLayer()) {
-		layerCache = Ui::Shadow::grab(layer, st::boxRoundShadow);
+	if (const auto layer = currentLayer()) {
+		layerCache = GrabLayer(layer, LayerShadow(), rect());
 	}
 	if (isAncestorOf(window()->focusWidget())) {
 		setFocus();
@@ -715,7 +805,12 @@ void LayerStackWidget::updateLayerBoxes() {
 	const auto specialLayerBox = _specialLayer
 		? _specialLayer->geometry()
 		: QRect();
-	_background->setLayerBoxes(specialLayerBox, layerBox);
+	const auto layer = currentLayer();
+	_background->setLayerBoxes(
+		specialLayerBox,
+		_specialLayer ? _specialLayer->cornerRadius() : 0,
+		layerBox,
+		layer ? layer->cornerRadius() : 0);
 	update();
 }
 

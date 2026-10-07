@@ -44,18 +44,6 @@ private:
 
 };
 
-struct CustomShadowCorners {
-	const style::icon &left;
-	CustomImage topLeft;
-	const style::icon &top;
-	CustomImage topRight;
-	const style::icon &right;
-	CustomImage bottomRight;
-	const style::icon &bottom;
-	CustomImage bottomLeft;
-	const style::margins &extend;
-};
-
 struct CustomShadow {
 	CustomImage left;
 	CustomImage topLeft;
@@ -146,27 +134,6 @@ void PlainShadow::paintEvent(QPaintEvent *e) {
 
 void Shadow::paint(QPainter &p, const QRect &box, int outerWidth, const style::Shadow &st, RectParts sides) {
 	ShadowPaint<style::Shadow>(p, box, outerWidth, st, sides);
-}
-
-void Shadow::paint(
-		QPainter &p,
-		const QRect &box,
-		int outerWidth,
-		const style::Shadow &st,
-		const std::array<QImage, 4> &corners,
-		RectParts sides) {
-	const auto shadow = CustomShadowCorners{
-		.left = st.left,
-		.topLeft = CustomImage(corners[0]),
-		.top = st.top,
-		.topRight = CustomImage(corners[2]),
-		.right = st.right,
-		.bottomRight = CustomImage(corners[3]),
-		.bottom = st.bottom,
-		.bottomLeft = CustomImage(corners[1]),
-		.extend = st.extend,
-	};
-	ShadowPaint<CustomShadowCorners>(p, box, outerWidth, shadow, sides);
 }
 
 void Shadow::paint(

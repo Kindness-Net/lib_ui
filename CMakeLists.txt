@@ -112,6 +112,8 @@ PRIVATE
     ui/image/svg_safety.h
     ui/layers/box_content.cpp
     ui/layers/box_content.h
+    ui/layers/box_layer_shadow.cpp
+    ui/layers/box_layer_shadow.h
     ui/layers/box_layer_widget.cpp
     ui/layers/box_layer_widget.h
     ui/layers/generic_box.cpp
@@ -309,8 +311,6 @@ PRIVATE
     ui/arc_angles.h
     ui/basic_click_handlers.cpp
     ui/basic_click_handlers.h
-    ui/cached_special_layer_shadow_corners.cpp
-    ui/cached_special_layer_shadow_corners.h
     ui/click_handler.cpp
     ui/click_handler.h
     ui/delayed_activation.cpp

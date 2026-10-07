@@ -8,6 +8,8 @@
 
 namespace Ui {
 
-[[nodiscard]] const std::array<QImage, 4> &SpecialLayerShadowCorners();
+// 圆角为 st::boxRadius 的面板共用的阴影，运行时按圆角生成，圆角改动时自动跟随。
+[[nodiscard]] QMargins BoxLayerShadowExtend();
+void PaintBoxLayerShadow(QPainter &p, const QRect &box);
 
 } // namespace Ui

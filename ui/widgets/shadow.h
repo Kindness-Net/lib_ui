@@ -52,14 +52,6 @@ public:
 		const QRect &box,
 		int outerWidth,
 		const style::Shadow &st,
-		const std::array<QImage, 4> &corners,
-		RectParts sides = RectPart::AllSides);
-
-	static void paint(
-		QPainter &p,
-		const QRect &box,
-		int outerWidth,
-		const style::Shadow &st,
 		const std::array<QImage, 4> &sides,
 		const std::array<QImage, 4> &corners);
 

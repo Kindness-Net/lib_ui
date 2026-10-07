@@ -91,7 +91,12 @@ defaultBoxCheckbox: Checkbox(defaultCheckbox) {
 	style: boxTextStyle;
 }
 
-boxRoundShadow: roundShadowRadius8px;
+// 对话框一族的阴影，运行时按图层实际圆角生成；直边观感与原角图一致。
+boxRoundShadow: BoxShadow {
+	blurRadius: 10px;
+	offset: point(0px, 1px);
+	opacity: 0.28;
+}
 // 主菜单阴影按实际圆角模糊生成；模糊半径即右侧外扩宽度，缓存图宽度按它计算。
 layerMainMenuShadow: BoxShadow {
 	blurRadius: 10px;
