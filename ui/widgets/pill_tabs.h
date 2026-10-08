@@ -32,6 +32,7 @@ public:
 	void setActiveIndex(int index);
 	void setShowProgress(float64 progress, float64 opacity);
 	void setShadow(const style::BoxShadow &st);
+	void setTabPainter(Fn<void(QPainter&, QRect, const QString&, bool)> painter);
 	[[nodiscard]] QMargins shadowExtend() const;
 	[[nodiscard]] int activeIndex() const;
 	[[nodiscard]] rpl::producer<int> activeIndexChanges() const;
@@ -48,6 +49,7 @@ private:
 	Animations::Simple _animation;
 	float64 _animatedPosition = 0.;
 	rpl::event_stream<int> _activeIndexChanges;
+	Fn<void(QPainter&, QRect, const QString&, bool)> _tabPainter;
 
 	std::optional<Ui::BoxShadow> _shadow;
 	QMargins _shadowMargins;

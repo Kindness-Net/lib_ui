@@ -81,6 +81,12 @@ QMargins PillTabs::shadowExtend() const {
 	return _shadow ? _shadow->extend() : QMargins();
 }
 
+void PillTabs::setTabPainter(
+		Fn<void(QPainter&, QRect, const QString&, bool)> painter) {
+	_tabPainter = std::move(painter);
+	update();
+}
+
 int PillTabs::activeIndex() const {
 	return _activeIndex;
 }
@@ -165,6 +171,15 @@ void PillTabs::paint() {
 	// Background fill.
 	p.setBrush(_st.bg);
 	p.drawRoundedRect(ir, iradius, iradius);
+	if (_tabPainter) {
+		for (auto i = 0; i < count; ++i) {
+			const auto left = r.x() + i * r.width() / count;
+			const auto right = r.x() + (i + 1) * r.width() / count;
+			_tabPainter(p, QRect(left, r.y(), right - left, h),
+				_labels[i], _activeIndex == i);
+		}
+		return;
+	}
 
 	// Active pill (with overlap into neighbors).
 	const auto overlap = bw;
