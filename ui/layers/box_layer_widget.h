@@ -80,6 +80,7 @@ public:
 			updateContentOpaque();
 		}
 	}
+	void setMinimalTopSkip(int skip) override;
 
 	bool isBoxShown() const override {
 		return !isHidden();
@@ -131,6 +132,7 @@ private:
 	[[nodiscard]] int contentTop() const;
 	[[nodiscard]] int countFullHeight() const;
 	[[nodiscard]] int countRealHeight() const;
+	[[nodiscard]] int withMinimalTopSkip(int top) const;
 	[[nodiscard]] QRect loadingRect() const;
 	void updateMaxRealHeight();
 	void updateSize();
@@ -150,6 +152,7 @@ private:
 
 	bool _noContentMargin = false;
 	int _maxContentHeight = 0;
+	int _minimalTopSkip = 0;
 	object_ptr<BoxContent> _content;
 
 	RoundRect _roundRect;

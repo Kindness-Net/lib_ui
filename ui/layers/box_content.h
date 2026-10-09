@@ -93,6 +93,7 @@ public:
 		int maxHeight,
 		bool forceCenterPosition = false) = 0;
 	virtual void setNoContentMargin(bool noContentMargin) = 0;
+	virtual void setMinimalTopSkip(int skip) = 0;
 	virtual bool isBoxShown() const = 0;
 	virtual void closeBox() = 0;
 	virtual void hideLayer() = 0;
@@ -228,6 +229,9 @@ public:
 			setAttribute(Qt::WA_OpaquePaintEvent, !_noContentMargin);
 		}
 		getDelegate()->setNoContentMargin(noContentMargin);
+	}
+	void setMinimalTopSkip(int skip) {
+		getDelegate()->setMinimalTopSkip(skip);
 	}
 
 	void scrollByDraggingDelta(int delta);
