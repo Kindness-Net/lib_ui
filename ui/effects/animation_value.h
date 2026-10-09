@@ -361,8 +361,12 @@ QPainterPath path(QPointF (&from)[N]) {
 rpl::producer<bool> Disables();
 bool Disabled();
 void SetDisabled(bool disabled);
+// 取整后的倍率，至少为 1，供按整数时间计算的代码使用。
 int SlowMultiplier();
 void SetSlowMultiplier(int multiplier); // 1 - default, 10 - slow x10.
+// Simple 动画时长倍率，必须大于 0：0.5 加快一倍，10 放慢十倍。
+float64 DurationMultiplier();
+void SetDurationMultiplier(float64 multiplier);
 
 void DrawStaticLoading(
 	QPainter &p,

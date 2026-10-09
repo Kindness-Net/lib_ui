@@ -474,7 +474,7 @@ inline void Simple::startPrepared(
 		anim::transition transition) {
 	_data->from = _data->value;
 	_data->delta = to - _data->from;
-	_data->duration = duration * anim::SlowMultiplier();
+	_data->duration = duration * anim::DurationMultiplier();
 	_data->transition = transition;
 	_data->animation.start();
 }

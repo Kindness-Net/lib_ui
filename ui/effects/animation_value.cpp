@@ -14,7 +14,7 @@ namespace anim {
 namespace {
 
 rpl::variable<bool> AnimationsDisabled = false;
-int SlowMultiplierMinusOne/* = 0*/;
+float64 DurationMultiplierValue = 1.;
 
 } // namespace
 
@@ -141,13 +141,23 @@ void SetDisabled(bool disabled) {
 }
 
 int SlowMultiplier() {
-	return (SlowMultiplierMinusOne + 1);
+	return std::max(int(std::round(DurationMultiplierValue)), 1);
 }
 
 void SetSlowMultiplier(int multiplier) {
 	Expects(multiplier > 0);
 
-	SlowMultiplierMinusOne = multiplier - 1;
+	DurationMultiplierValue = multiplier;
+}
+
+float64 DurationMultiplier() {
+	return DurationMultiplierValue;
+}
+
+void SetDurationMultiplier(float64 multiplier) {
+	Expects(multiplier > 0.);
+
+	DurationMultiplierValue = multiplier;
 }
 
 void DrawStaticLoading(
