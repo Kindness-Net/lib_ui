@@ -128,6 +128,8 @@ public:
 	void overrideBodyColor(std::optional<QColor> color);
 	void overrideBottomBarColor(std::optional<QColor> color);
 	void setBottomBarHeight(int height);
+	// 宿主接管系统材质时开启：去掉自绘阴影边距与底色，圆角与阴影交给系统。
+	void setSystemBackdrop(bool enabled);
 	[[nodiscard]] style::palette *titleOverridePalette() const;
 
 	base::weak_ptr<Toast::Instance> showToast(Toast::Config &&config);
@@ -177,6 +179,7 @@ private:
 	void destroyLayer();
 
 	void updateTitleGeometry(int newWidth) const;
+	[[nodiscard]] QMargins windowPadding() const;
 	void paintShadowBorder(QPainter &p) const;
 	void paintOpaqueBorder(QPainter &p) const;
 	void paintBodyBg(QPainter &p, int radius = 0) const;
@@ -233,6 +236,7 @@ private:
 	bool _allowResize = false;
 	bool _hideOnDeactivate = false;
 	bool _useTransparency = true;
+	bool _systemBackdrop = false;
 	bool _backAllowed = false;
 	bool _closeAllowed = true;
 	style::margins _padding;

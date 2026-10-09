@@ -697,6 +697,32 @@ void SeparatePanel::setBottomBarHeight(int height) {
 	update();
 }
 
+void SeparatePanel::setSystemBackdrop(bool enabled) {
+	if (_systemBackdrop == enabled) {
+		return;
+	}
+	const auto was = windowPadding();
+	_systemBackdrop = enabled;
+	const auto now = windowPadding();
+	for (const auto &edge : _resizeEdges) {
+		edge->setParentPadding(now);
+	}
+	if (!_fullscreen.current() && !rect().isEmpty() && was != now) {
+		// 主体位置与尺寸保持不变，只增减四周的阴影边距。
+		const auto delta = QSize(
+			now.left() + now.right() - was.left() - was.right(),
+			now.top() + now.bottom() - was.top() - was.bottom());
+		if (_allowResize) {
+			setMinimumSize(minimumSize() + delta);
+		} else {
+			setFixedSize(size() + delta);
+		}
+		setGeometry(geometry().marginsRemoved(was).marginsAdded(now));
+	}
+	updateControlsGeometry();
+	update();
+}
+
 style::palette *SeparatePanel::titleOverridePalette() const {
 	return _titleOverridePalette.get();
 }
@@ -1119,7 +1145,8 @@ void SeparatePanel::toggleOpacityAnimation(bool visible) {
 	}
 
 	_visible = visible;
-	if (_useTransparency) {
+	// 系统材质不随窗口内容的透明度变化，背板模式下直接显隐。
+	if (_useTransparency && !_systemBackdrop) {
 		if (_animationCache.isNull()) {
 			showControls();
 			_animationCache = GrabWidget(this);
@@ -1392,7 +1419,11 @@ rpl::producer<bool> SeparatePanel::fullScreenValue() const {
 }
 
 QMargins SeparatePanel::computePadding() const {
-	return _fullscreen.current() ? QMargins() : _padding;
+	return _fullscreen.current() ? QMargins() : windowPadding();
+}
+
+QMargins SeparatePanel::windowPadding() const {
+	return _systemBackdrop ? QMargins() : _padding;
 }
 
 void SeparatePanel::initGeometry(QSize size) {
@@ -1415,7 +1446,7 @@ void SeparatePanel::initGeometry(QSize size) {
 			st::lineWidth,
 			st::lineWidth);
 	for (const auto &edge : _resizeEdges) {
-		edge->setParentPadding(_padding);
+		edge->setParentPadding(windowPadding());
 	}
 
 	setAttribute(Qt::WA_OpaquePaintEvent, !_useTransparency);
@@ -1424,7 +1455,7 @@ void SeparatePanel::initGeometry(QSize size) {
 			size = QSize(size.width(), available.height());
 		}
 		const auto rect = ClampToAvailable([&] {
-			auto result = QRect(QPoint(), size).marginsAdded(_padding);
+			auto result = QRect(QPoint(), size).marginsAdded(windowPadding());
 			result.moveCenter(parentGeometry.center());
 			return result;
 		}(), available);
@@ -1451,7 +1482,7 @@ void SeparatePanel::initGeometry(QSize size) {
 
 void SeparatePanel::updateGeometry(QSize size) {
 	if (!_fullscreen.current()) {
-		size = QRect(QPoint(), size).marginsAdded(_padding).size();
+		size = QRect(QPoint(), size).marginsAdded(windowPadding()).size();
 		if (_allowResize) {
 			setMinimumSize(size);
 		} else {
@@ -1509,6 +1540,9 @@ void SeparatePanel::paintEvent(QPaintEvent *e) {
 				QRect(QPoint(0, 0), _animationCache.size()));
 			return;
 		}
+	}
+	if (_systemBackdrop) {
+		return;
 	}
 	if (_useTransparency && !_fullscreen.current()) {
 		paintShadowBorder(p);
@@ -1697,10 +1731,11 @@ void SeparatePanel::mousePressEvent(QMouseEvent *e) {
 	if (_fullscreen.current()) {
 		return;
 	}
+	const auto padding = windowPadding();
 	auto dragArea = myrtlrect(
-		_padding.left(),
-		_padding.top(),
-		width() - _padding.left() - _padding.right(),
+		padding.left(),
+		padding.top(),
+		width() - padding.left() - padding.right(),
 		_titleHeight);
 	if (e->button() == Qt::LeftButton) {
 		if (dragArea.contains(e->pos())) {
