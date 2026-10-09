@@ -213,6 +213,11 @@ void Menu::removeAction(int position) {
 	auto widget = base::take(_actionWidgets[position]);
 	_actionWidgets.erase(begin(_actionWidgets) + position);
 
+	// 与 insertAction() 对称，销毁前先把后续项序号前移：选中和键盘导航按 index() 查找。
+	for (auto i = position, to = int(_actionWidgets.size()); i != to; ++i) {
+		_actionWidgets[i]->setIndex(i);
+	}
+
 	// The widget goes first, like in clearActions() and clearLastSeparator():
 	// an item reads action() while it is being torn down, so the action has
 	// to outlive it.
