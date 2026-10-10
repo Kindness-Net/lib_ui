@@ -338,6 +338,10 @@ struct Metrics {
 		FontFlags flags,
 		int size) {
 	auto font = QFont(QFont().family());
+#ifdef Q_OS_WIN
+	// 点阵字体会认领任意码点并画成黑块，回退时只用轮廓字体。
+	font.setStyleStrategy(QFont::ForceOutline);
+#endif // Q_OS_WIN
 
 	const auto monospace = (flags & FontFlag::Monospace) != 0;
 	const auto system = !monospace && (family == SystemFontTag());
