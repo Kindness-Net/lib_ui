@@ -33,8 +33,6 @@ Box {
 	title: FlatLabel;
 	bg: color;
 	titleAdditionalFg: color;
-	shadowIgnoreTopSkip: bool;
-	shadowIgnoreBottomSkip: bool;
 }
 
 boxDuration: 200;

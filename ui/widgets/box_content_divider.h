@@ -7,7 +7,6 @@
 #pragma once
 
 #include "ui/rp_widget.h"
-#include "ui/rect_part.h"
 
 namespace style {
 struct DividerBar;
@@ -25,10 +24,7 @@ public:
 	BoxContentDivider(
 		QWidget *parent,
 		int height = st::boxDividerHeight,
-		const style::DividerBar &st = st::defaultDividerBar,
-		RectParts parts = RectPart::Top | RectPart::Bottom);
-
-	[[nodiscard]] const style::color &color() const;
+		const style::DividerBar &st = st::defaultDividerBar);
 
 	QAccessible::Role accessibilityRole() override {
 		return QAccessible::Role::Separator;
@@ -37,12 +33,8 @@ public:
 protected:
 	void paintEvent(QPaintEvent *e) override;
 
-	void paintTop(QPainter &p, int skip = 0);
-	void paintBottom(QPainter &p, int skip = 0);
-
 private:
 	const style::DividerBar &_st;
-	const RectParts _parts;
 
 };
 

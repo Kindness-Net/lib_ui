@@ -9,8 +9,6 @@
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/labels.h"
-#include "ui/widgets/shadow.h"
-#include "ui/wrap/fade_wrap.h"
 #include "ui/text/text_utilities.h"
 #include "ui/rect_part.h"
 #include "ui/painter.h"
@@ -207,13 +205,6 @@ void BoxContent::setInner(
 		_scroll.create(this, st);
 		_scroll->setGeometryToLeft(0, _innerTopSkip, width(), 0);
 		_scroll->setOwnedWidget(std::move(inner));
-		if (_topShadow) {
-			_topShadow->raise();
-			_bottomShadow->raise();
-		} else {
-			_topShadow.create(this);
-			_bottomShadow.create(this);
-		}
 		if (!_preparing) {
 			// We didn't set dimensions yet, this will be called from finishPrepare();
 			finishScrollCreate();
@@ -221,8 +212,6 @@ void BoxContent::setInner(
 	} else {
 		getDelegate()->setLayerType(false);
 		_scroll.destroyDelayed();
-		_topShadow.destroyDelayed();
-		_bottomShadow.destroyDelayed();
 	}
 }
 
@@ -241,15 +230,11 @@ void BoxContent::finishScrollCreate() {
 		_scroll->show();
 	}
 	updateScrollAreaGeometry();
-	_scroll->scrolls(
+	rpl::merge(
+		_scroll->scrolls(),
+		_scroll->innerResizes()
 	) | rpl::on_next([=] {
 		updateInnerVisibleTopBottom();
-		updateShadowsVisibility();
-	}, lifetime());
-	_scroll->innerResizes(
-	) | rpl::on_next([=] {
-		updateInnerVisibleTopBottom();
-		updateShadowsVisibility();
 	}, lifetime());
 	_draggingScroll.scrolls(
 	) | rpl::on_next([=](int delta) {
@@ -337,24 +322,6 @@ void BoxContent::updateInnerVisibleTopBottom() {
 	}
 }
 
-void BoxContent::updateShadowsVisibility(anim::type animated) {
-	if (!_scroll) {
-		return;
-	}
-
-	const auto top = _scroll->scrollTop();
-	_topShadow->toggle(
-		((top > 0)
-			|| (_innerTopSkip > 0
-				&& !getDelegate()->style().shadowIgnoreTopSkip)),
-		animated);
-	_bottomShadow->toggle(
-		(top < _scroll->scrollTopMax())
-			|| (_innerBottomSkip > 0
-				&& !getDelegate()->style().shadowIgnoreBottomSkip),
-		animated);
-}
-
 void BoxContent::setDimensionsToContent(
 		int newWidth,
 		not_null<RpWidget*> content) {
@@ -395,22 +362,7 @@ void BoxContent::setInnerVisible(bool scrollAreaVisible) {
 }
 
 QPixmap BoxContent::grabInnerCache() {
-	const auto isTopShadowVisible = !_topShadow->isHidden();
-	const auto isBottomShadowVisible = !_bottomShadow->isHidden();
-	if (isTopShadowVisible) {
-		_topShadow->setVisible(false);
-	}
-	if (isBottomShadowVisible) {
-		_bottomShadow->setVisible(false);
-	}
-	const auto result = GrabWidget(this, _scroll->geometry());
-	if (isTopShadowVisible) {
-		_topShadow->setVisible(true);
-	}
-	if (isBottomShadowVisible) {
-		_bottomShadow->setVisible(true);
-	}
-	return result;
+	return GrabWidget(this, _scroll->geometry());
 }
 
 void BoxContent::resizeEvent(QResizeEvent *e) {
@@ -431,15 +383,8 @@ void BoxContent::updateScrollAreaGeometry() {
 	const auto newScrollHeight = height() - _innerTopSkip - _innerBottomSkip;
 	const auto changed = (_scroll->height() != newScrollHeight);
 	_scroll->setGeometryToLeft(0, _innerTopSkip, width(), newScrollHeight);
-	_topShadow->entity()->resize(width(), st::lineWidth);
-	_topShadow->moveToLeft(0, _innerTopSkip);
-	_bottomShadow->entity()->resize(width(), st::lineWidth);
-	_bottomShadow->moveToLeft(
-		0,
-		height() - _innerBottomSkip - st::lineWidth);
 	if (changed) {
 		updateInnerVisibleTopBottom();
-		updateShadowsVisibility(anim::type::instant);
 	}
 }
 

@@ -314,8 +314,7 @@ public:
 		QWidget *parent,
 		object_ptr<RpWidget> &&child,
 		const style::margins &padding,
-		const style::DividerBar &st = st::defaultDividerBar,
-		RectParts parts = RectPart::Top | RectPart::Bottom);
+		const style::DividerBar &st = st::defaultDividerBar);
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;

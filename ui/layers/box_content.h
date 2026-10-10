@@ -58,7 +58,6 @@ class RoundButton;
 class IconButton;
 class ScrollArea;
 class FlatLabel;
-class FadeShadow;
 class BoxContent;
 struct ScrollToRequest;
 
@@ -321,7 +320,6 @@ private:
 	void setInner(object_ptr<RpWidget> inner, const style::ScrollArea &st);
 	void updateScrollAreaGeometry();
 	void updateInnerVisibleTopBottom();
-	void updateShadowsVisibility(anim::type animated = anim::type::normal);
 	object_ptr<RpWidget> doTakeInnerWidget();
 
 	BoxContentDelegate *_delegate = nullptr;
@@ -332,8 +330,6 @@ private:
 	int _innerTopSkip = 0;
 	int _innerBottomSkip = 0;
 	object_ptr<ScrollArea> _scroll = { nullptr };
-	object_ptr<FadeShadow> _topShadow = { nullptr };
-	object_ptr<FadeShadow> _bottomShadow = { nullptr };
 
 	Ui::DraggingScrollManager _draggingScroll;
 	Ui::Animations::Simple _scrollAnimation;
