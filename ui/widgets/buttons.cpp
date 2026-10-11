@@ -16,6 +16,8 @@
 #include "ui/rect.h"
 #include "ui/qt_object_factory.h"
 #include "ui/round_rect.h"
+#include "extras/extras_ui_settings.h"
+#include "styles/palette.h"
 
 #include <QtGui/QtEvents>
 #include <QtGui/QPainterPath>
@@ -1034,9 +1036,18 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 }
 
 void SettingsButton::paintBg(Painter &p, const QRect &rect, bool over) const {
-	if (over || !property("ExtrasWindowMaterialSurfaceActive").toBool()) {
+	if (!property("ExtrasWindowMaterialSurfaceActive").toBool()) {
 		p.fillRect(rect, over ? _st.textBgOver : _st.textBg);
+		return;
 	}
+	if (!over) {
+		return;
+	}
+	// 材质下底色透明，默认悬停色改为叠加半透明色，跟随背后的材质颜色。
+	const auto standard = (_st.textBgOver.get() == st::windowBgOver.get());
+	p.fillRect(
+		rect,
+		standard ? ExtrasUiSettings::hoverOverlay() : _st.textBgOver->c);
 }
 
 void SettingsButton::paintText(Painter &p, bool over, int outerw) const {

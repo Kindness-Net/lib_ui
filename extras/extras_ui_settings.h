@@ -24,4 +24,8 @@ bool isMaterialSwitches();
 void setAvatarCorners(int val);
 int getAvatarCorners();
 
+// 窗口材质下的悬停叠加色由主程序按当前主题提供，控件库只负责绘制。
+void setHoverOverlay(QColor (*resolver)());
+[[nodiscard]] QColor hoverOverlay();
+
 }
