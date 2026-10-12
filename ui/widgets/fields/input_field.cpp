@@ -1249,6 +1249,35 @@ void RemoveDocumentTags(
 	format.setFont(st.style.font);
 	format.setVerticalAlignment(QTextCharFormat::AlignNormal);
 	cursor.mergeCharFormat(format);
+
+	// emoji 图片保持顶部对齐，落到基线上会让整行上移。
+	auto objects = std::vector<std::pair<int, int>>();
+	for (auto block = document->findBlock(from)
+		; block.isValid() && block.position() < end
+		; block = block.next()) {
+		for (auto i = block.begin(); !i.atEnd(); ++i) {
+			const auto fragment = i.fragment();
+			const auto fragmentFormat = fragment.charFormat();
+			if (!fragmentFormat.isImageFormat()
+				&& fragmentFormat.objectType() != kCustomEmojiFormat) {
+				continue;
+			}
+			const auto start = std::max(fragment.position(), from);
+			const auto till = std::min(
+				fragment.position() + fragment.length(),
+				end);
+			if (start < till) {
+				objects.emplace_back(start, till);
+			}
+		}
+	}
+	auto top = QTextCharFormat();
+	top.setVerticalAlignment(QTextCharFormat::AlignTop);
+	for (const auto &[start, till] : objects) {
+		cursor.setPosition(start);
+		cursor.setPosition(till, QTextCursor::KeepAnchor);
+		cursor.mergeCharFormat(top);
+	}
 }
 
 [[nodiscard]] QString TagWithoutCustomEmoji(QStringView tag) {
