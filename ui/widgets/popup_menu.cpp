@@ -47,6 +47,12 @@ void ConstrainEmbeddedMenu(not_null<PopupMenu*> menu) {
 			available.y() + available.height() - menu->height())));
 }
 
+// 原生子窗口（如网页视图）总盖在宿主的绘制层之上，嵌入的菜单会被遮住。
+[[nodiscard]] bool HasNativeChildWindow(not_null<QWidget*> window) {
+	const auto handle = window->windowHandle();
+	return handle && !handle->findChildren<QWindow*>().isEmpty();
+}
+
 class MenuSurface final : public QGraphicsEffect {
 public:
 	explicit MenuSurface(int radius) : _radius(radius) {
@@ -196,7 +202,10 @@ void PopupMenu::init() {
 
 void PopupMenu::embedIntoParent() {
 	const auto owner = parentWidget();
-	if (!isWindow() || !owner || owner->window()->windowType() == Qt::Popup) {
+	if (!isWindow()
+		|| !owner
+		|| owner->window()->windowType() == Qt::Popup
+		|| HasNativeChildWindow(owner->window())) {
 		return;
 	}
 	_owner = owner;
