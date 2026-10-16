@@ -25,7 +25,6 @@ windowShadowFgFallback: #e7eef5; // gray: fallback for shadow without opacity
 cardBg: #ffffff | windowBg;
 cardBgSunken: #f6f9fc | windowBgOver;
 strokeFg: #203f601a | windowShadowFgFallback;
-strokeFgStrong: #203f602e | windowSubTextFg;
 accentSoft: #238fe81a | windowBgOver;
 accentSoftStrong: #238fe829 | windowBgRipple;
 
@@ -84,10 +83,10 @@ menuSubmenuArrowFg: #373737; // default popup menu submenu arrow icon (like in m
 menuFgDisabled: #cccccc; // default popup menu item disabled text (like unavailable items in message field context menu)
 menuSeparatorFg: #f1f1f1; // default popup menu separator (like in message field context menu)
 
-scrollBarBg: #238fe853; // 滚动条随强调色变化，透明度保持层次。
-scrollBarBgOver: #238fe87a;
-scrollBg: #238fe81a;
-scrollBgOver: #238fe82c;
+scrollBarBg: #00000053; // default scroll bar current rectangle, the bar itself (like in chats list)
+scrollBarBgOver: #0000007a; // default scroll bar current rectangle with mouse over it
+scrollBg: #0000001a; // default scroll bar background
+scrollBgOver: #0000002c; // default scroll bar background with mouse over the scroll bar
 
 smallCloseIconFg: #c7c7c7; // small X icon (like in Show all sessions box to the right for sessions termination)
 smallCloseIconFgOver: #a3a3a3; // small X icon with mouse over
@@ -366,10 +365,10 @@ settingsIconFg: #ffffff; // settings icon shape
 // hue and saturation of the average background color if user chooses
 // some other (not bundled to this color theme) background. If the
 // bundled background is used those colors are not adjusted in any way.
-historyScrollBarBg: #238fe87a; // 聊天滚动条跟随强调色，不受壁纸染色影响。
-historyScrollBarBgOver: #238fe8bc;
-historyScrollBg: #238fe84c;
-historyScrollBgOver: #238fe86b;
+historyScrollBarBg: scrollBarBg; // 聊天滚动条与通用滚动条一致，用中性色，不随强调色和壁纸变化。
+historyScrollBarBgOver: scrollBarBgOver;
+historyScrollBg: scrollBg;
+historyScrollBgOver: scrollBgOver;
 
 msgInBg: windowBg; // inbox message background
 msgInBgSelected: #c2dcf2; // inbox selected message background (and background of selected text in those messages)

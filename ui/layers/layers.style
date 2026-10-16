@@ -124,8 +124,8 @@ boxTitleAdditionalFont: normalFont;
 boxScroll: ScrollArea(defaultSolidScroll) {
 	bg: transparent;
 	bgOver: transparent;
-	barBg: strokeFgStrong;
-	barBgOver: windowSubTextFg;
+	barBg: scrollBarBg;
+	barBgOver: scrollBarBgOver;
 	width: 8px;
 	deltax: 2px;
 	deltat: 2px;
