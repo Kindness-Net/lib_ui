@@ -45,8 +45,10 @@ void AbstractButton::setAcceptBoth(bool acceptBoth, bool triggerOnPress) {
 }
 
 void AbstractButton::checkIfOver(QPoint localPos) {
-	auto over = rect().marginsRemoved(getMargins()).contains(localPos);
-	setOver(over, StateChangeSource::ByHover);
+	const auto hitRect = _fullRectHitTest
+		? rect()
+		: rect().marginsRemoved(getMargins());
+	setOver(hitRect.contains(localPos), StateChangeSource::ByHover);
 }
 
 void AbstractButton::mousePressEvent(QMouseEvent *e) {
@@ -64,11 +66,7 @@ void AbstractButton::mousePressEvent(QMouseEvent *e) {
 }
 
 void AbstractButton::mouseMoveEvent(QMouseEvent *e) {
-	if (rect().marginsRemoved(getMargins()).contains(e->pos())) {
-		setOver(true, StateChangeSource::ByHover);
-	} else {
-		setOver(false, StateChangeSource::ByHover);
-	}
+	checkIfOver(e->pos());
 }
 
 void AbstractButton::mouseReleaseEvent(QMouseEvent *e) {

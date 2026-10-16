@@ -40,6 +40,9 @@ public:
 	}
 
 	void setPointerCursor(bool enablePointerCursor);
+	void setFullRectHitTest(bool enabled = true) {
+		_fullRectHitTest = enabled;
+	}
 
 	void setAcceptBoth(bool acceptBoth = true, bool triggerOnPress = false);
 
@@ -141,6 +144,7 @@ private:
 	bool _menuButton : 1 = false;
 	bool _listItem : 1 = false;
 	bool _pageTab : 1 = false;
+	bool _fullRectHitTest : 1 = false;
 
 	Fn<void()> _clickedCallback;
 

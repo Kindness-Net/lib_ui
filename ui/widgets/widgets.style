@@ -903,6 +903,8 @@ defaultCheckbox: Checkbox {
 	disabledOpacity: 0.5;
 }
 
+defaultOptionListPadding: margins(0px, 10px, 0px, 10px);
+
 defaultRoundShadow: Shadow {
 	left: icon {{ "round_shadow_left", windowShadowFg }};
 	topLeft: icon {{ "round_shadow_top_left", windowShadowFg }};

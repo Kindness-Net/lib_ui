@@ -249,6 +249,7 @@ PRIVATE
     ui/widgets/fields/time_part_input.h
     ui/widgets/labels.cpp
     ui/widgets/labels.h
+    ui/widgets/option_list.h
     ui/widgets/menu/menu.cpp
     ui/widgets/menu/menu.h
     ui/widgets/menu/menu_action.cpp
