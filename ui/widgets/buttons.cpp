@@ -1018,16 +1018,10 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 	for (auto parent = parentWidget(); !card && parent; parent = parent->parentWidget()) {
 		card = parent->property("settingsCardGroup").toBool();
 	}
-	if (!card) {
-		shape.addRoundedRect(
-			rect().marginsRemoved(st::settingsRowMargin),
-			st::settingsRowRadius,
-			st::settingsRowRadius);
-	} else if (SettingsCardsPlain()) {
-		shape.addRoundedRect(rect(), st::settingsRowRadius, st::settingsRowRadius);
-	} else {
-		shape.addRect(rect());
-	}
+	shape.addRoundedRect(
+		card ? rect() : rect().marginsRemoved(st::settingsRowMargin),
+		st::settingsRowRadius,
+		st::settingsRowRadius);
 	p.save();
 	p.setRenderHint(QPainter::Antialiasing);
 	p.setClipPath(shape, Qt::IntersectClip);
