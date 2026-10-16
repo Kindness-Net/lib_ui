@@ -254,6 +254,9 @@ public:
 		rtlupdate(checkRect());
 	}
 	[[nodiscard]] QRect checkRect() const;
+	[[nodiscard]] const style::Checkbox &st() const {
+		return _st;
+	}
 
 	[[nodiscard]] not_null<AbstractCheckView*> checkView() const {
 		return _check.get();
