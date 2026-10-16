@@ -21,6 +21,9 @@
 namespace Ui {
 namespace {
 
+constexpr auto kUncheckedFillOpacity = 0.4;
+constexpr auto kCheckedRadioFillOpacity = 0.2;
+
 int SwitchShift(not_null<const style::Toggle *> st) {
 	return ExtrasUiSettings::isMaterialSwitches() ? st->shift : st::defaultToggleShift;
 }
@@ -262,27 +265,23 @@ void CheckView::setStyle(const style::Check &st) {
 }
 
 void CheckView::paint(QPainter &p, int left, int top, int outerWidth) {
-	auto toggled = currentAnimationValue();
-	auto pen = _untoggledOverride
-		? anim::pen(*_untoggledOverride, _st->toggledFg, toggled)
-		: anim::pen(_st->untoggledFg, _st->toggledFg, toggled);
-	pen.setWidth(_st->thickness);
-	p.setPen(pen);
-	p.setBrush(anim::brush(
-		_st->bg,
-		(_untoggledOverride
-			? anim::color(*_untoggledOverride, _st->toggledFg, toggled)
-			: anim::color(_st->untoggledFg, _st->toggledFg, toggled)),
-		toggled));
-
-	{
-		PainterHighQualityEnabler hq(p);
-		p.drawRoundedRect(style::rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(_st->thickness / 2., _st->thickness / 2., _st->thickness / 2., _st->thickness / 2.)), outerWidth), st::roundRadiusSmall - (_st->thickness / 2.), st::roundRadiusSmall - (_st->thickness / 2.));
-	}
-
+	const auto toggled = currentAnimationValue();
+	// 无边框实底：未选中用描边色淡化填充，随样式和主题变化。
+	auto off = _untoggledOverride.value_or(_st->untoggledFg->c);
+	off.setAlphaF(off.alphaF() * kUncheckedFillOpacity);
+	p.save();
+	const auto hq = PainterHighQualityEnabler(p);
+	p.setPen(Qt::NoPen);
+	p.setBrush(anim::color(off, _st->toggledFg->c, toggled));
+	const auto radius = style::ConvertScale(5);
+	p.drawRoundedRect(style::rtlrect(
+		QRectF(left, top, _st->diameter, _st->diameter), outerWidth),
+		radius, radius);
 	if (toggled > 0) {
+		p.setOpacity(p.opacity() * toggled);
 		_st->icon.paint(p, QPoint(left, top), outerWidth);
 	}
+	p.restore();
 }
 
 QSize CheckView::rippleSize() const {
@@ -425,46 +424,36 @@ void RadioView::setStyle(const style::Radio &st) {
 void RadioView::paint(QPainter &p, int left, int top, int outerWidth) {
 	PainterHighQualityEnabler hq(p);
 
-	auto toggled = currentAnimationValue();
-	auto pen = _toggledOverride
-		? (_untoggledOverride
-			? anim::pen(*_untoggledOverride, *_toggledOverride, toggled)
-			: anim::pen(_st->untoggledFg, *_toggledOverride, toggled))
-		: (_untoggledOverride
-			? anim::pen(*_untoggledOverride, _st->toggledFg, toggled)
-			: anim::pen(_st->untoggledFg, _st->toggledFg, toggled));
-	pen.setWidth(_st->thickness);
-	p.setPen(pen);
-	p.setBrush(_st->bg);
-	//int32 skip = qCeil(_st->thickness / 2.);
-	//p.drawEllipse(_checkRect.marginsRemoved(QMargins(skip, skip, skip, skip)));
-	const auto skip = (_st->outerSkip / 10.) + (_st->thickness / 2);
-	p.drawEllipse(style::rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(skip, skip, skip, skip)), outerWidth));
-
+	const auto toggled = currentAnimationValue();
+	const auto on = _toggledOverride.value_or(_st->toggledFg->c);
+	const auto outer = style::rtlrect(
+		QRectF(left, top, _st->diameter, _st->diameter),
+		outerWidth);
+	PaintOuter(
+		p,
+		outer,
+		_untoggledOverride.value_or(_st->untoggledFg->c),
+		on,
+		toggled);
 	if (toggled > 0) {
-		p.setPen(Qt::NoPen);
-		p.setBrush(_toggledOverride
-			? (_untoggledOverride
-				? anim::brush(*_untoggledOverride, *_toggledOverride, toggled)
-				: anim::brush(_st->untoggledFg, *_toggledOverride, toggled))
-			: (_untoggledOverride
-				? anim::brush(*_untoggledOverride, _st->toggledFg, toggled)
-				: anim::brush(_st->untoggledFg, _st->toggledFg, toggled)));
-
-		const auto skip0 = _st->diameter / 2., skip1 = _st->skip / 10., checkSkip = skip0 * (1. - toggled) + skip1 * toggled;
-		p.drawEllipse(style::rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(checkSkip, checkSkip, checkSkip, checkSkip)), outerWidth));
-		//int32 fskip = qFloor(checkSkip), cskip = qCeil(checkSkip);
-		//if (2 * fskip < _checkRect.width()) {
-		//	if (fskip != cskip) {
-		//		p.setOpacity(float64(cskip) - checkSkip);
-		//		p.drawEllipse(_checkRect.marginsRemoved(QMargins(fskip, fskip, fskip, fskip)));
-		//		p.setOpacity(1.);
-		//	}
-		//	if (2 * cskip < _checkRect.width()) {
-		//		p.drawEllipse(_checkRect.marginsRemoved(QMargins(cskip, cskip, cskip, cskip)));
-		//	}
-		//}
+		const auto skip = (_st->diameter / 2.) * (1. - toggled)
+			+ (_st->skip / 10.) * toggled;
+		p.setBrush(on);
+		p.drawEllipse(outer.marginsRemoved({ skip, skip, skip, skip }));
 	}
+}
+
+void RadioView::PaintOuter(
+		QPainter &p,
+		const QRectF &rect,
+		QColor untoggled,
+		QColor toggled,
+		float64 progress) {
+	untoggled.setAlphaF(untoggled.alphaF() * kUncheckedFillOpacity);
+	toggled.setAlphaF(toggled.alphaF() * kCheckedRadioFillOpacity);
+	p.setPen(Qt::NoPen);
+	p.setBrush(anim::color(untoggled, toggled, progress));
+	p.drawEllipse(rect);
 }
 
 QSize RadioView::rippleSize() const {

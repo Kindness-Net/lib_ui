@@ -129,6 +129,14 @@ public:
 	QImage prepareRippleMask() const override;
 	bool checkRippleStartPosition(QPoint position) const override;
 
+	// 无边框外圈：未选中为淡化实底，选中过渡到强调色淡底。
+	static void PaintOuter(
+		QPainter &p,
+		const QRectF &rect,
+		QColor untoggled,
+		QColor toggled,
+		float64 progress);
+
 private:
 	QSize rippleSize() const;
 
