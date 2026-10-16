@@ -29,6 +29,17 @@ strokeFgStrong: #203f602e | windowSubTextFg;
 accentSoft: #238fe81a | windowBgOver;
 accentSoftStrong: #238fe829 | windowBgRipple;
 
+// 设置列表的页面、卡片和行内层次；卡片描边全透明时改为无卡片列表。
+settingsPageBg: #ffffff | cardBgSunken;
+settingsCardBg: #ffffff | cardBg;
+settingsCardBgOver: #eff2f7 | windowBgOver;
+settingsCardIconBg: #ffffff00 | windowBgOver;
+settingsCardFg: #282d37 | windowFg;
+settingsCardSubTextFg: #858c98 | windowSubTextFg;
+settingsCardBorderFg: #ffffff00 | strokeFg;
+settingsCardDividerFg: #ffffff00 | strokeFg;
+settingsGroupDividerFg: #2d3e5714 | strokeFg; // 无卡片列表的组间细线
+
 shadowFg: #203f6010; // most shadows (including opacity)
 slideFadeOutBg: #0000003c; // slide animation (chat to profile) fade out filling
 slideFadeOutShadowFg: windowShadowFg; // slide animation (chat to profile) fade out right section shadow

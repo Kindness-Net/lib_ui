@@ -1011,13 +1011,15 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 	for (auto parent = parentWidget(); !card && parent; parent = parent->parentWidget()) {
 		card = parent->property("settingsCardGroup").toBool();
 	}
-	if (card) {
-		shape.addRect(rect());
-	} else {
+	if (!card) {
 		shape.addRoundedRect(
 			rect().marginsRemoved(st::settingsRowMargin),
 			st::settingsRowRadius,
 			st::settingsRowRadius);
+	} else if (SettingsCardsPlain()) {
+		shape.addRoundedRect(rect(), st::settingsRowRadius, st::settingsRowRadius);
+	} else {
+		shape.addRect(rect());
 	}
 	p.save();
 	p.setRenderHint(QPainter::Antialiasing);
@@ -1115,6 +1117,10 @@ void SettingsButton::setText(TextWithEntities &&text) {
 	_text.setMarkedText(_st.style, text, kMarkupTextOptions, _context);
 	accessibilityNameChanged();
 	update();
+}
+
+bool SettingsCardsPlain() {
+	return !st::settingsCardBorderFg->c.alpha();
 }
 
 not_null<RippleButton*> CreateSimpleRectButton(

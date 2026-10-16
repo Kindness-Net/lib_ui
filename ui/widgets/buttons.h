@@ -371,6 +371,9 @@ private:
 
 };
 
+// 设置卡片描边全透明时按无卡片列表绘制：整行圆角悬停、组间细线、强调色组标题。
+[[nodiscard]] bool SettingsCardsPlain();
+
 [[nodiscard]] not_null<RippleButton*> CreateSimpleRectButton(
 	QWidget *parent,
 	const style::RippleAnimation &st);
