@@ -106,6 +106,8 @@ linkFontOver: font(fsize underline);
 
 roundRadiusLarge: 6px;
 roundRadiusSmall: 3px;
+// 无文字图标按钮悬停底色与点击涟漪的统一圆角。
+iconButtonRadius: 10px;
 
 dateRadius: roundRadiusLarge;
 
