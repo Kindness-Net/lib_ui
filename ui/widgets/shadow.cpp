@@ -229,7 +229,7 @@ BoxShadow::Grid BoxShadow::preparedGrid(int cornerRadius) const {
 }
 
 void BoxShadow::prepare(int cornerRadius) const {
-	const auto color = st::windowShadowFg->c;
+	const auto color = QColor(0, 0, 0);
 	if (_cornerRadius == cornerRadius && _color == color) {
 		return;
 	}
@@ -288,7 +288,7 @@ void BoxShadow::prepare(int cornerRadius) const {
 		std::move(image),
 		_blurRadius * ratio);
 
-	// 模糊遮罩按主题颜色着色，并保留颜色自身的透明度。
+	// 保留模糊轮廓和偏移，悬浮容器统一使用黑色投影。
 	for (auto y = 0; y < image.height(); ++y) {
 		auto row = reinterpret_cast<uint32*>(image.scanLine(y));
 		for (auto x = 0; x < image.width(); ++x) {
