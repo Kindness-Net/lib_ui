@@ -958,7 +958,7 @@ defaultMenuToggleOver: Toggle(defaultToggle) {
 	untoggledFg: menuIconFgOver;
 }
 defaultMenuSeparator: MenuSeparator {
-	padding: margins(12px, 6px, 12px, 6px);
+	padding: margins(16px, 5px, 16px, 5px);
 	width: 1px;
 	fg: windowDividerFg;
 }
@@ -967,8 +967,8 @@ defaultMenu: Menu {
 
 	itemBg: windowBg;
 	itemBgOver: windowBgOver;
-	itemBgMargin: margins(6px, 0px, 6px, 0px);
-	itemBgRadius: 8px;
+	itemBgMargin: margins(6px, 1px, 6px, 1px);
+	itemBgRadius: 7px;
 	itemFg: windowFg;
 	itemFgOver: windowFgOver;
 	itemFgDisabled: menuFgDisabled;
@@ -1003,8 +1003,8 @@ defaultPopupMenu: PopupMenu {
 	menu: defaultMenu;
 
 	radius: 12px;
-	duration: 150;
-	showDuration: 200;
+	duration: 130;
+	showDuration: 160;
 }
 
 defaultPillTabs: PillTabs {
