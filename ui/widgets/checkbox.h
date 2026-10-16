@@ -30,6 +30,11 @@ public:
 	float64 currentAnimationValue();
 	bool animating() const;
 
+	// 悬停反馈画在控件本体上：按控件形状叠一层遮罩，代替整行悬停底色。
+	void setOver(bool over, anim::type animated = anim::type::normal);
+	// 自绘控件共用的遮罩色，progress 为悬停淡入进度。
+	[[nodiscard]] static QColor OverColor(float64 progress);
+
 	auto checkedChanges() const {
 		return _checks.events();
 	}
@@ -45,14 +50,20 @@ public:
 
 	virtual ~AbstractCheckView() = default;
 
+protected:
+	// 悬停遮罩颜色，未悬停且淡出结束时为空。
+	[[nodiscard]] std::optional<QColor> overColor() const;
+
 private:
 	virtual void checkedChangedHook(anim::type animated) {
 	}
 
 	int _duration = 0;
 	bool _checked = false;
+	bool _over = false;
 	Fn<void()> _updateCallback;
 	Ui::Animations::Simple _toggleAnimation;
+	Ui::Animations::Simple _overAnimation;
 
 	rpl::event_stream<bool> _checks;
 

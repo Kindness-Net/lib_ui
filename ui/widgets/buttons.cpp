@@ -10,6 +10,7 @@
 #include "ui/effects/cross_animation.h"
 #include "ui/effects/numbers_animation.h"
 #include "ui/image/image_prepare.h"
+#include "ui/layers/box_content.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/painter.h"
@@ -27,6 +28,8 @@
 namespace Ui {
 namespace {
 
+constexpr auto kFlatRowHoverProperty = "flatRowHover";
+
 class SimpleRippleButton : public RippleButton {
 public:
 	using RippleButton::RippleButton;
@@ -35,6 +38,21 @@ protected:
 	QPoint prepareRippleStartPosition() const override final {
 		const auto result = mapFromGlobal(QCursor::pos());
 		return rect().contains(result)
+			? result
+			: DisabledRippleStartPosition();
+	}
+
+};
+
+// 整行可点的按钮：对话框及其面板形态里不产生整行水波纹。
+class SimpleRowButton final : public RippleButton {
+public:
+	using RippleButton::RippleButton;
+
+protected:
+	QPoint prepareRippleStartPosition() const override {
+		const auto result = mapFromGlobal(QCursor::pos());
+		return (rect().contains(result) && !UsesFlatRowHover(this))
 			? result
 			: DisabledRippleStartPosition();
 	}
@@ -1039,6 +1057,9 @@ void SettingsButton::paintEvent(QPaintEvent *e) {
 }
 
 void SettingsButton::paintBg(Painter &p, const QRect &rect, bool over) const {
+	if (over && UsesFlatRowHover(this)) {
+		over = false;
+	}
 	if (!property("ExtrasWindowMaterialSurfaceActive").toBool()) {
 		p.fillRect(rect, over ? _st.textBgOver : _st.textBg);
 		return;
@@ -1108,10 +1129,18 @@ void SettingsButton::onStateChanged(
 	}
 	if (_toggle) {
 		_toggle->setStyle(isOver() ? _st.toggleOver : _st.toggle);
+		_toggle->setOver(
+			isOver() && !nowDisabled && UsesFlatRowHover(this));
 	}
 	if (nowDisabled != wasDisabled) {
 		setPointerCursor(!isDisabled());
 	}
+}
+
+QPoint SettingsButton::prepareRippleStartPosition() const {
+	return UsesFlatRowHover(this)
+		? DisabledRippleStartPosition()
+		: RippleButton::prepareRippleStartPosition();
 }
 
 void SettingsButton::setText(TextWithEntities &&text) {
@@ -1124,10 +1153,24 @@ bool SettingsCardsPlain() {
 	return !st::settingsCardBorderFg->c.alpha();
 }
 
+void MarkFlatRowHover(not_null<QWidget*> container) {
+	container->setProperty(kFlatRowHoverProperty, true);
+}
+
+bool UsesFlatRowHover(not_null<const QWidget*> widget) {
+	for (auto current = widget.get(); current; current = current->parentWidget()) {
+		if (dynamic_cast<const BoxContent*>(current)
+			|| current->property(kFlatRowHoverProperty).toBool()) {
+			return true;
+		}
+	}
+	return false;
+}
+
 not_null<RippleButton*> CreateSimpleRectButton(
 		QWidget *parent,
 		const style::RippleAnimation &st) {
-	const auto result = CreateChild<SimpleRippleButton>(parent, st);
+	const auto result = CreateChild<SimpleRowButton>(parent, st);
 	result->paintRequest() | rpl::on_next([result] {
 		auto p = QPainter(result);
 		result->paintRipple(p, 0, 0);
@@ -1139,11 +1182,12 @@ not_null<RippleButton*> CreateSimpleSettingsButton(
 		QWidget *parent,
 		const style::RippleAnimation &st,
 		const style::color &bg) {
-	const auto result = CreateChild<SimpleRippleButton>(parent, st);
+	const auto result = CreateChild<SimpleRowButton>(parent, st);
 	result->paintRequest() | rpl::on_next([result, bg] {
 		auto p = QPainter(result);
 		const auto paintOver = (result->isOver() || result->isDown())
-			&& !result->isDisabled();
+			&& !result->isDisabled()
+			&& !UsesFlatRowHover(result);
 		if (paintOver) {
 			p.fillRect(result->rect(), bg);
 		}

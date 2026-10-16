@@ -14,6 +14,7 @@
 #include "styles/palette.h"
 
 #include <QtGui/QtEvents>
+#include <QtGui/QPainterPath>
 #include <QtCore/QtMath>
 
 #include "extras/extras_ui_settings.h"
@@ -23,6 +24,8 @@ namespace {
 
 constexpr auto kUncheckedFillOpacity = 0.4;
 constexpr auto kCheckedRadioFillOpacity = 0.2;
+// 遮罩取前景色：浅色主题下加深，深色主题下提亮，两种主题都更醒目。
+constexpr auto kOverOverlayOpacity = 0.1;
 
 int SwitchShift(not_null<const style::Toggle *> st) {
 	return ExtrasUiSettings::isMaterialSwitches() ? st->shift : st::defaultToggleShift;
@@ -92,6 +95,35 @@ bool AbstractCheckView::animating() const {
 	return _toggleAnimation.animating();
 }
 
+void AbstractCheckView::setOver(bool over, anim::type animated) {
+	if (_over == over) {
+		return;
+	}
+	_over = over;
+	if (animated == anim::type::instant) {
+		_overAnimation.stop();
+		update();
+		return;
+	}
+	_overAnimation.start(
+		[=] { update(); },
+		_over ? 0. : 1.,
+		_over ? 1. : 0.,
+		st::universalDuration);
+}
+
+QColor AbstractCheckView::OverColor(float64 progress) {
+	return anim::with_alpha(st::windowFg->c, kOverOverlayOpacity * progress);
+}
+
+std::optional<QColor> AbstractCheckView::overColor() const {
+	const auto progress = _overAnimation.value(_over ? 1. : 0.);
+	if (progress <= 0.) {
+		return std::nullopt;
+	}
+	return OverColor(progress);
+}
+
 ToggleView::ToggleView(
 	const style::Toggle &st,
 	bool checked,
@@ -137,6 +169,14 @@ void ToggleView::paint(QPainter &p, int left, int top, int outerWidth) {
 	p.setPen(pen);
 	p.setBrush(anim::brush(_st->untoggledBg, _st->toggledBg, toggled));
 	p.drawEllipse(fgRectF);
+
+	if (const auto over = overColor()) {
+		auto track = QPainterPath();
+		track.addRoundedRect(QRectF(bgRect), innerRadius, innerRadius);
+		auto knob = QPainterPath();
+		knob.addEllipse(fgRectF);
+		p.fillPath(track.united(knob), *over);
+	}
 
 	if (_locked || _st->xsize > 0) {
 		p.setPen(Qt::NoPen);
@@ -274,9 +314,14 @@ void CheckView::paint(QPainter &p, int left, int top, int outerWidth) {
 	p.setPen(Qt::NoPen);
 	p.setBrush(anim::color(off, _st->toggledFg->c, toggled));
 	const auto radius = style::ConvertScale(5);
-	p.drawRoundedRect(style::rtlrect(
-		QRectF(left, top, _st->diameter, _st->diameter), outerWidth),
-		radius, radius);
+	const auto rect = style::rtlrect(
+		QRectF(left, top, _st->diameter, _st->diameter),
+		outerWidth);
+	p.drawRoundedRect(rect, radius, radius);
+	if (const auto over = overColor()) {
+		p.setBrush(*over);
+		p.drawRoundedRect(rect, radius, radius);
+	}
 	if (toggled > 0) {
 		p.setOpacity(p.opacity() * toggled);
 		_st->icon.paint(p, QPoint(left, top), outerWidth);
@@ -376,9 +421,15 @@ void RoundCheckView::paint(QPainter &p, int left, int top, int outerWidth) {
 	{
 		PainterHighQualityEnabler hq(p);
 		const auto remove = _st->thickness / 2.;
-		p.drawEllipse(style::rtlrect(
+		const auto rect = style::rtlrect(
 			QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(
-				QMarginsF(remove, remove, remove, remove)), outerWidth));
+				QMarginsF(remove, remove, remove, remove)), outerWidth);
+		p.drawEllipse(rect);
+		if (const auto over = overColor()) {
+			p.setPen(Qt::NoPen);
+			p.setBrush(*over);
+			p.drawEllipse(rect);
+		}
 	}
 
 	if (toggled > 0) {
@@ -435,6 +486,10 @@ void RadioView::paint(QPainter &p, int left, int top, int outerWidth) {
 		_untoggledOverride.value_or(_st->untoggledFg->c),
 		on,
 		toggled);
+	if (const auto over = overColor()) {
+		p.setBrush(*over);
+		p.drawEllipse(outer);
+	}
 	if (toggled > 0) {
 		const auto skip = (_st->diameter / 2.) * (1. - toggled)
 			+ (_st->skip / 10.) * toggled;
@@ -896,6 +951,10 @@ QPixmap Checkbox::grabCheckCache() const {
 void Checkbox::onStateChanged(State was, StateChangeSource source) {
 	RippleButton::onStateChanged(was, source);
 
+	// 禁用时立即撤掉遮罩，下面截取的禁用缓存里不带悬停色。
+	_check->setOver(
+		isOver() && !isDisabled(),
+		isDisabled() ? anim::type::instant : anim::type::normal);
 	if (isDisabled() && !(was & StateFlag::Disabled)) {
 		setCursor(style::cur_default);
 		finishAnimating();
