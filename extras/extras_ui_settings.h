@@ -28,4 +28,7 @@ int getAvatarCorners();
 void setHoverOverlay(QColor (*resolver)());
 [[nodiscard]] QColor hoverOverlay();
 
+void setDialogTitle(QString (*resolver)());
+[[nodiscard]] QString dialogTitle();
+
 }

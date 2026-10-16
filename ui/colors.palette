@@ -53,6 +53,12 @@ lightButtonBgRipple: #c9e4f6; // default light button ripple effect
 lightButtonFg: windowActiveTextFg; // default light button text
 lightButtonFgOver: lightButtonFg; // default light button text with mouse over
 
+// 分段页签底、柔和主按钮底与选中态、细描边。
+controlBg: #f2f4f7 | windowBgOver;
+controlActiveBg: #e7effc | lightButtonBgOver;
+controlSelectedBg: #dae7fc | lightButtonBgOver;
+controlBorder: #2d3e5713 | strokeFg;
+
 attentionButtonFg: #d14e4e; // default attention button text (like confirm button on log out)
 attentionButtonFgOver: #d14e4e; // default attention button text with mouse over
 attentionButtonBgOver: #fcdfde; // default attention button background with mouse over

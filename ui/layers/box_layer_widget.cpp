@@ -6,6 +6,8 @@
 //
 #include "ui/layers/box_layer_widget.h"
 
+#include "extras/extras_ui_settings.h"
+
 #include "ui/layers/box_layer_shadow.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/widgets/buttons.h"
@@ -57,6 +59,7 @@ BoxLayerWidget::BoxLayerWidget(
 , _roundRect(st::boxRadius, st().bg)
 , _drawerRoundRect(st::boxDrawerRadius, st().bg) {
 	_content->setParent(this);
+	setObjectName(u"dialog.shell"_q);
 
 	_additionalTitle.changes(
 	) | rpl::on_next([=] {
@@ -67,6 +70,14 @@ BoxLayerWidget::BoxLayerWidget(
 
 	updateMaxRealHeight();
 	_content->setDelegate(this);
+	if (!_closeButton) {
+		createCloseButton();
+	}
+	// 常规对话框缺标题时补通用标题；自绘顶部的对话框保持原样。
+	const auto title = ExtrasUiSettings::dialogTitle();
+	if (!hasTitle() && !_noContentMargin && !title.isEmpty()) {
+		setTitle(rpl::single(TextWithEntities{ title }), {});
+	}
 }
 
 BoxLayerWidget::~BoxLayerWidget() = default;
@@ -82,8 +93,14 @@ void BoxLayerWidget::setLayerType(bool layerType) {
 	}
 }
 
+// 标题最多两行，多出的行把内容整体下移。
 int BoxLayerWidget::titleHeight() const {
-	return st::boxTitleHeight;
+	if (!_title) {
+		return st::boxTitleHeight;
+	}
+	const auto &style = st().title.style;
+	const auto line = std::max(style.lineHeight, style.font->height);
+	return st::boxTitleHeight + std::max(0, _title->height() - line);
 }
 
 const style::Box &BoxLayerWidget::st() const {
@@ -103,6 +120,9 @@ void BoxLayerWidget::setStyle(const style::Box &st) {
 	_st = &st;
 	_roundRect.setColor(st.bg);
 	_drawerRoundRect.setColor(st.bg);
+	if (_closeButton && !_customCloseButton) {
+		createCloseButton();
+	}
 	updateSize();
 }
 
@@ -359,10 +379,14 @@ void BoxLayerWidget::setTitle(
 			st::defaultPopupMenu,
 			context);
 		_title->show();
+		_title->setObjectName(u"dialog.title"_q);
 		std::move(
 			title
 		) | rpl::on_next([=] {
 			updateTitlePosition();
+		}, _title->lifetime());
+		_title->heightValue() | rpl::skip(1) | rpl::on_next([=] {
+			updateSize();
 		}, _title->lifetime());
 	} else {
 		_title.destroy();
@@ -450,6 +474,9 @@ void BoxLayerWidget::scheduleButtonsUpdate() {
 }
 
 void BoxLayerWidget::updateButtonsPositions() {
+	if (_closeButton && !_customCloseButton) {
+		_closeButton->setVisible(_content->closeByEscape());
+	}
 	if (!_dimensionsSet || _updatingButtons) {
 		return;
 	}
@@ -464,23 +491,40 @@ void BoxLayerWidget::updateButtonsPositions() {
 			entry.geometry.height());
 	}
 	auto right = st::boxTitleButtonsRight;
+	if (_closeButton && !_closeButton->isHidden()) {
+		right = closeButtonRight();
+		_closeButton->moveToRight(right,
+			std::max(0, (st::boxTitleHeight - _closeButton->height()) / 2));
+		_closeButton->raise();
+		right += _closeButton->width() + st::boxTitleButtonsSkip;
+	}
 	for (const auto &button : _topButtons) {
 		if (button->isHidden()) {
 			continue;
 		}
 		button->moveToRight(
 			right,
-			std::max(0, (titleHeight() - button->height()) / 2));
+			std::max(0, (st::boxTitleHeight - button->height()) / 2));
 		right += button->width() + st::boxTitleButtonsSkip;
 	}
 	_updatingButtons = false;
 }
 
+// 不同尺寸的关闭按钮按图标中心对齐到标准关闭按钮的位置。
+int BoxLayerWidget::closeButtonRight() const {
+	return std::max(
+		0,
+		st::boxTitleButtonsRight
+			+ (st::boxTitleClose.width - _closeButton->width()) / 2);
+}
+
 int BoxLayerWidget::titleRightSkip() const {
-	if (_topButtons.empty()) {
-		return st::boxTitlePosition.x();
-	}
 	auto result = st::boxTitleButtonsRight;
+	if (_closeButton && !_closeButton->isHidden()) {
+		result = closeButtonRight()
+			+ _closeButton->width()
+			+ st::boxTitleButtonsSkip;
+	}
 	for (const auto &button : _topButtons) {
 		if (button->isHidden()) {
 			continue;
@@ -567,6 +611,30 @@ void BoxLayerWidget::addTopButton(object_ptr<AbstractButton> button) {
 	) | rpl::on_next([=] {
 		scheduleButtonsUpdate();
 	}, raw->lifetime());
+	updateButtonsPositions();
+	updateTitlePosition();
+}
+
+// 公共关闭按钮随样式重建，只在内容允许关闭时显示；清空底部按钮时保留。
+void BoxLayerWidget::createCloseButton() {
+	auto button = object_ptr<IconButton>(this, st().close);
+	button->setClickedCallback([=] { closeByBackButton(); });
+	setCloseButton(std::move(button), false);
+}
+
+void BoxLayerWidget::addCloseButton(object_ptr<AbstractButton> button) {
+	setCloseButton(std::move(button), true);
+}
+
+void BoxLayerWidget::setCloseButton(
+		object_ptr<AbstractButton> button,
+		bool custom) {
+	_closeButton.destroy();
+	_closeButton = std::move(button);
+	_customCloseButton = custom;
+	_closeButton->setParent(this);
+	_closeButton->setObjectName(u"dialog.close"_q);
+	_closeButton->setVisible(custom || _content->closeByEscape());
 	updateButtonsPositions();
 	updateTitlePosition();
 }

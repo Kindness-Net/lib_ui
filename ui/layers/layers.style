@@ -33,10 +33,11 @@ Box {
 	title: FlatLabel;
 	bg: color;
 	titleAdditionalFg: color;
+	close: IconButton;
 }
 
 boxDuration: 200;
-boxRadius: 12px;
+boxRadius: 16px;
 boxDrawerRadius: 18px;
 boxNarrowWidth: 420px;
 
@@ -47,18 +48,18 @@ defaultBoxButtonTextStyle: TextStyle(semiboldTextStyle) {
 defaultBoxButton: RoundButton(defaultLightButton) {
 	width: -28px;
 	height: 36px;
-	radius: 10px;
+	radius: 8px;
 	textTop: 8px;
 	style: defaultBoxButtonTextStyle;
 	textBg: transparent;
 }
 activeBoxButton: RoundButton(defaultBoxButton) {
-	textFg: windowFgActive;
-	textFgOver: windowFgActive;
+	textFg: windowActiveTextFg;
+	textFgOver: windowActiveTextFg;
 	numbersTextFg: activeButtonSecondaryFg;
 	numbersTextFgOver: activeButtonSecondaryFgOver;
-	textBg: windowBgActive;
-	textBgOver: activeButtonBgOver;
+	textBg: controlActiveBg;
+	textBgOver: controlSelectedBg;
 	ripple: RippleAnimation(defaultRippleAnimation) {
 		color: activeButtonBgRipple;
 	}
@@ -102,17 +103,21 @@ layerMainMenuShadow: BoxShadow {
 	opacity: 0.25;
 }
 
-boxTitleFont: font(16px semibold);
+boxTitleFont: font(18px semibold);
 boxTitle: FlatLabel(defaultFlatLabel) {
 	textFg: boxTitleFg;
-	maxHeight: 24px;
+	maxHeight: 28px;
 	style: TextStyle(defaultTextStyle) {
 		font: boxTitleFont;
 	}
 }
-boxTitlePosition: point(20px, 13px);
-boxTitleHeight: 48px;
-boxTitleButtonsRight: 8px;
+// 对话框外壳的标题最多两行。
+boxLayerTitle: FlatLabel(boxTitle) {
+	maxHeight: 52px;
+}
+boxTitlePosition: point(20px, 18px);
+boxTitleHeight: 60px;
+boxTitleButtonsRight: 15px;
 boxTitleButtonsSkip: 4px;
 boxTitleAdditionalSkip: 9px;
 boxTitleAdditionalFont: normalFont;
@@ -134,8 +139,8 @@ boxTopMargin: 8px;
 boxTitleCloseIcon: icon {{ "box_button_close", boxTitleCloseFg }};
 boxTitleCloseIconOver: icon {{ "box_button_close", boxTitleCloseFgOver }};
 boxTitleClose: IconButton(defaultIconButton) {
-	width: 38px;
-	height: 38px;
+	width: 30px;
+	height: 30px;
 
 	icon: boxTitleCloseIcon;
 	iconOver: boxTitleCloseIconOver;
@@ -144,7 +149,7 @@ boxTitleClose: IconButton(defaultIconButton) {
 	fillOnHover: true;
 	duration: 120;
 	rippleAreaPosition: point(0px, 0px);
-	rippleAreaSize: 38px;
+	rippleAreaSize: 30px;
 	ripple: defaultRippleAnimationBgOver;
 }
 boxTitleMenu: IconButton(boxTitleClose) {
@@ -168,7 +173,7 @@ boxLittleSkip: 10px;
 boxMediumSkip: 20px;
 
 defaultBox: Box {
-	buttonPadding: margins(12px, 10px, 12px, 12px);
+	buttonPadding: margins(20px, 16px, 20px, 20px);
 	buttonSkip: 8px;
 	buttonHeight: 36px;
 	button: activeBoxButton;
@@ -176,8 +181,9 @@ defaultBox: Box {
 	buttonLeft: leftBoxButton;
 	margin: margins(0px, 10px, 0px, 10px);
 	bg: boxBg;
-	title: boxTitle;
+	title: boxLayerTitle;
 	titleAdditionalFg: boxTitleAdditionalFg;
+	close: boxTitleClose;
 }
 layerBox: Box(defaultBox) {
 }

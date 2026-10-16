@@ -80,6 +80,7 @@ public:
 	virtual void addButton(object_ptr<AbstractButton> button) = 0;
 	virtual void addLeftButton(object_ptr<AbstractButton> button) = 0;
 	virtual void addTopButton(object_ptr<AbstractButton> button) = 0;
+	virtual void addCloseButton(object_ptr<AbstractButton> button) = 0;
 	virtual void showLoading(bool show) = 0;
 	virtual void updateButtonsPositions() = 0;
 
@@ -139,6 +140,9 @@ public:
 	}
 	void setCloseByEscape(bool close) {
 		_closeByEscape = close;
+		if (_delegate) {
+			_delegate->updateButtonsPositions();
+		}
 	}
 	[[nodiscard]] bool closeByEscape() const {
 		return _closeByEscape;
@@ -186,6 +190,9 @@ public:
 	QPointer<AbstractButton> addTopButton(
 		object_ptr<AbstractButton> button);
 	QPointer<IconButton> addTopButton(
+		const style::IconButton &st,
+		Fn<void()> clickCallback = nullptr);
+	QPointer<IconButton> addCloseButton(
 		const style::IconButton &st,
 		Fn<void()> clickCallback = nullptr);
 	void showLoading(bool show) {

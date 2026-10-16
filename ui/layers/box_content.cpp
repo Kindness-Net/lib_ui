@@ -197,6 +197,16 @@ QPointer<IconButton> BoxContent::addTopButton(
 	return result;
 }
 
+QPointer<IconButton> BoxContent::addCloseButton(
+		const style::IconButton &st,
+		Fn<void()> clickCallback) {
+	auto button = object_ptr<IconButton>(this, st);
+	const auto result = QPointer<IconButton>(button.data());
+	result->setClickedCallback(std::move(clickCallback));
+	getDelegate()->addCloseButton(std::move(button));
+	return result;
+}
+
 void BoxContent::setInner(
 		object_ptr<RpWidget> inner,
 		const style::ScrollArea &st) {
