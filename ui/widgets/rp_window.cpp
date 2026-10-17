@@ -8,9 +8,23 @@
 
 #include "ui/gl/gl_surface.h"
 #include "ui/platform/ui_platform_window.h"
+#include "styles/palette.h"
 #include <QtCore/QVariant>
 
 namespace Ui {
+
+QColor WindowShellBackground() {
+	// 暗色窗口外框固定为不透明灰色，避免随主题强调色变化。
+	return (st::windowBg->c.lightnessF() < .5)
+		? QColor(0x30, 0x30, 0x30)
+		: st::windowShellBg->c;
+}
+
+QColor WindowDividerColor() {
+	return (st::windowBg->c.lightnessF() < .5)
+		? QColor(255, 255, 255, 28)
+		: QColor(0, 0, 0, 22);
+}
 
 RpWindow::RpWindow(QWidget *parent)
 : RpWidget(parent)

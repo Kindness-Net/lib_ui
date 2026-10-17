@@ -5,6 +5,7 @@
 // https://github.com/desktop-app/legal/blob/master/LEGAL
 //
 #include "ui/widgets/shadow.h"
+#include "ui/widgets/rp_window.h"
 
 #include "ui/image/image_prepare.h"
 #include "ui/painter.h"
@@ -129,7 +130,10 @@ void PlainShadow::paintEvent(QPaintEvent *e) {
 	if (property("ExtrasWindowMaterialSurfaceActive").toBool()) {
 		return;
 	}
-	QPainter(this).fillRect(e->rect(), _color);
+	const auto separator = (_color == st::shadowFg || _color == st::windowDividerFg);
+	QPainter(this).fillRect(e->rect(), separator
+		? ((height() > width()) ? WindowShellBackground() : WindowDividerColor())
+		: _color->c);
 }
 
 void Shadow::paint(QPainter &p, const QRect &box, int outerWidth, const style::Shadow &st, RectParts sides) {

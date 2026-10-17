@@ -15,6 +15,10 @@ struct TextStyle;
 } // namespace style
 
 namespace Ui {
+
+[[nodiscard]] QColor WindowShellBackground();
+[[nodiscard]] QColor WindowDividerColor();
+
 namespace Platform {
 class BasicWindowHelper;
 struct HitTestRequest;

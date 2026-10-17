@@ -38,7 +38,6 @@ protected:
 private:
 	const int _lineWidth;
 	const style::margins &_padding;
-	const style::color &_fg;
 	const style::color &_bg;
 	const int _height;
 	const not_null<QAction*> _action;

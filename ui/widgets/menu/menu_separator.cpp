@@ -7,6 +7,7 @@
 #include "ui/widgets/menu/menu_separator.h"
 
 #include "ui/painter.h"
+#include "ui/widgets/rp_window.h"
 #include "styles/style_widgets.h"
 
 namespace Ui::Menu {
@@ -19,7 +20,6 @@ Separator::Separator(
 : ItemBase(parent, st)
 , _lineWidth(separator.width)
 , _padding(separator.padding)
-, _fg(separator.fg)
 , _bg(st.itemBg)
 , _height(_padding.top() + _lineWidth + _padding.bottom())
 , _action(action) {
@@ -35,7 +35,7 @@ Separator::Separator(
 			_padding.top(),
 			width() - _padding.left() - _padding.right(),
 			_lineWidth,
-			_fg);
+			WindowDividerColor());
 	}, lifetime());
 }
 
