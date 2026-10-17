@@ -296,6 +296,7 @@ PillTabs {
 }
 
 InputField {
+	search: bool;
 	textBg: color;
 	textBgActive: color; // Used only with borderRadius.
 	textFg: color;
@@ -1097,7 +1098,7 @@ defaultMultiSelectItem: MultiSelectItem {
 	minScale: 0.3;
 }
 
-defaultMultiSelectSearchField: InputField(defaultInputField) {
+defaultInlineField: InputField(defaultInputField) {
 	textBg: transparent;
 	textMargins: margins(2px, 7px, 2px, 0px);
 
@@ -1114,6 +1115,36 @@ defaultMultiSelectSearchField: InputField(defaultInputField) {
 	heightMin: 32px;
 
 	style: defaultTextStyle;
+}
+
+searchFieldHeight: 36px;
+searchFieldPadding: 13px;
+searchFieldIconSkip: 26px;
+defaultSearchFieldIcon: icon {{ "search_field", windowSubTextFg }};
+defaultSearchField: InputField(defaultInputField) {
+	search: true;
+	textBg: windowBgOver;
+	textBgActive: windowBgOver;
+	textMargins: margins(39px, 8px, 32px, 6px);
+	placeholderFg: windowSubTextFg;
+	placeholderFgActive: windowSubTextFg;
+	placeholderFgError: windowSubTextFg;
+	placeholderMargins: margins(0px, 0px, 2px, 0px);
+	placeholderScale: 0.;
+	placeholderShift: -50px;
+	placeholderFont: normalFont;
+	borderFg: transparent;
+	borderFgActive: transparent;
+	borderFgError: activeLineFgError;
+	border: 0px;
+	borderActive: 0px;
+	borderRadius: 18px;
+	borderDenominator: 1;
+	style: defaultTextStyle;
+	heightMin: searchFieldHeight;
+}
+defaultMultiSelectSearchField: InputField(defaultSearchField) {
+	textMargins: margins(2px, 8px, 2px, 6px);
 }
 
 boxFieldSearchIcon: icon {{ "box_search", menuIconFg, point(10px, 9px) }};
@@ -1138,7 +1169,7 @@ defaultMultiSelectSearchCancel: CrossButton {
 }
 defaultMultiSelect: MultiSelect {
 	bg: boxSearchBg;
-	padding: margins(8px, 6px, 8px, 6px);
+	padding: margins(21px, 6px, 21px, 6px);
 	maxHeight: 104px;
 	scroll: ScrollArea(defaultSolidScroll) {
 		deltat: 3px;
@@ -1154,8 +1185,8 @@ defaultMultiSelect: MultiSelect {
 
 	field: defaultMultiSelectSearchField;
 	fieldMinWidth: 42px;
-	fieldIcon: boxFieldSearchIcon;
-	fieldIconSkip: 36px;
+	fieldIcon: defaultSearchFieldIcon;
+	fieldIconSkip: searchFieldIconSkip;
 
 	fieldCancel: defaultMultiSelectSearchCancel;
 	fieldCancelSkip: 40px;
@@ -1455,8 +1486,6 @@ SearchFieldRow {
 	height: pixels;
 	padding: margins;
 	field: InputField;
-	fieldIcon: icon;
-	fieldIconSkip: pixels;
 	fieldCancel: CrossButton;
 	fieldCancelSkip: pixels;
 }

@@ -910,7 +910,7 @@ void SeparatePanel::toggleSearch(bool shown) {
 		}, inner->lifetime());
 		_searchField = CreateChild<InputField>(
 			inner,
-			st::defaultMultiSelectSearchField,
+			st::defaultSearchField,
 			InputField::Mode::SingleLine,
 			_searchPlaceholder.value());
 		_searchField->show();

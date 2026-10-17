@@ -2899,10 +2899,49 @@ void InputField::paintSurrounding(
 		QRect clip,
 		float64 errorDegree,
 		float64 focusedDegree) {
-	if (_st.borderRadius > 0) {
+	if (_st.search) {
+		paintSearchBackground(p, rect(), _st, focusedDegree, underMouse());
+	} else if (_st.borderRadius > 0) {
 		paintRoundSurrounding(p, clip, errorDegree, focusedDegree);
 	} else {
 		paintFlatSurrounding(p, clip, errorDegree, focusedDegree);
+	}
+}
+
+void InputField::paintSearchBackground(
+		QPainter &p,
+		QRect rect,
+		const style::InputField &st,
+		float64 focused,
+		bool hovered) {
+	const auto neutral = [](const QColor &color) {
+		const auto gray = qGray(color.rgb());
+		return QColor(gray, gray, gray, color.alpha());
+	};
+	const auto background = neutral(st.textBg->c);
+	const auto normal = hovered
+		? anim::color(background, neutral(st.textFg->c), .035)
+		: background;
+	const auto active = anim::color(
+		neutral(st.textBgActive->c), neutral(st.textFg->c), .055);
+	p.setPen(Qt::NoPen);
+	p.setBrush(anim::color(normal, active, focused));
+	const auto radius = std::min(st.heightMin, rect.height()) / 2.;
+	const auto hq = PainterHighQualityEnabler(p);
+	p.drawRoundedRect(rect, radius, radius);
+}
+
+void InputField::enterEventHook(QEnterEvent *e) {
+	RpWidget::enterEventHook(e);
+	if (_st.search) {
+		update();
+	}
+}
+
+void InputField::leaveEventHook(QEvent *e) {
+	RpWidget::leaveEventHook(e);
+	if (_st.search) {
+		update();
 	}
 }
 
@@ -2965,6 +3004,13 @@ void InputField::paintEvent(QPaintEvent *e) {
 	const auto errorDegree = _a_error.value(_error ? 1. : 0.);
 	const auto focusedDegree = _a_focused.value(_focused ? 1. : 0.);
 	paintSurrounding(p, r, errorDegree, focusedDegree);
+	if (_st.search) {
+		st::defaultSearchFieldIcon.paint(p,
+			st::searchFieldPadding,
+			(height() - st::defaultSearchFieldIcon.height()) / 2,
+			width(),
+			anim::color(_st.placeholderFg, _st.textFg, focusedDegree));
+	}
 
 	const auto margins = placeholderPaintMargins();
 

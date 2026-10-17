@@ -436,11 +436,20 @@ public:
 
 	~InputField();
 
+	static void paintSearchBackground(
+		QPainter &p,
+		QRect rect,
+		const style::InputField &st,
+		float64 focused,
+		bool hovered);
+
 protected:
 	void startPlaceholderAnimation();
 	void startBorderAnimation();
 
 	void paintEvent(QPaintEvent *e) override;
+	void enterEventHook(QEnterEvent *e) override;
+	void leaveEventHook(QEvent *e) override;
 	void focusInEvent(QFocusEvent *e) override;
 	void mousePressEvent(QMouseEvent *e) override;
 	void contextMenuEvent(QContextMenuEvent *e) override;
