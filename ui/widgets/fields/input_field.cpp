@@ -20,6 +20,7 @@
 #include "ui/widgets/fields/custom_field_object.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/widgets/shadow.h"
 #include "ui/emoji_config.h"
 #include "ui/ui_utility.h"
 #include "ui/painter.h"
@@ -38,6 +39,7 @@
 #include <QtGui/QPixmapCache>
 #include <QtGui/QRawFont>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QGraphicsEffect>
 #include <QtWidgets/QCommonStyle>
 #include <QtWidgets/QScrollBar>
 #include <QtWidgets/QTextEdit>
@@ -1585,6 +1587,82 @@ struct FormattingAction {
 	int quoteId = 0;
 };
 
+// 搜索框浮层的一组外观：lift 为底色向白色混合的比例，其余为透明度。
+struct SearchSurfaceLook {
+	float64 lift = 0.;
+	float64 line = 0.;
+	float64 tight = 0.;
+	float64 wide = 0.;
+};
+
+constexpr auto kSearchLight = std::array<SearchSurfaceLook, 3>{ {
+	{ .lift = 0., .line = .08, .tight = .06, .wide = .08 },
+	{ .lift = 0., .line = .12, .tight = .07, .wide = .11 },
+	{ .lift = 0., .line = .08, .tight = .08, .wide = .16 },
+} };
+constexpr auto kSearchDark = std::array<SearchSurfaceLook, 3>{ {
+	{ .lift = .05, .line = .07, .tight = .40, .wide = .28 },
+	{ .lift = .075, .line = .10, .tight = .45, .wide = .32 },
+	{ .lift = .085, .line = .09, .tight = .45, .wide = .40 },
+} };
+
+[[nodiscard]] SearchSurfaceLook MixLook(
+		const SearchSurfaceLook &a,
+		const SearchSurfaceLook &b,
+		float64 progress) {
+	const auto mix = [&](float64 from, float64 till) {
+		return from + (till - from) * progress;
+	};
+	return {
+		.lift = mix(a.lift, b.lift),
+		.line = mix(a.line, b.line),
+		.tight = mix(a.tight, b.tight),
+		.wide = mix(a.wide, b.wide),
+	};
+}
+
+// 阴影只缓存最近一次的圆角半径，界面上的搜索框通常同高。
+[[nodiscard]] const BoxShadow &SearchShadow(bool wide) {
+	static const auto tight = BoxShadow(st::searchFieldShadowTight);
+	static const auto outer = BoxShadow(st::searchFieldShadowWide);
+	return wide ? outer : tight;
+}
+
+[[nodiscard]] QMargins SearchShadowExtend() {
+	const auto tight = BoxShadow::ExtendFor(st::searchFieldShadowTight);
+	const auto wide = BoxShadow::ExtendFor(st::searchFieldShadowWide);
+	return {
+		std::max(tight.left(), wide.left()),
+		std::max(tight.top(), wide.top()),
+		std::max(tight.right(), wide.right()),
+		std::max(tight.bottom(), wide.bottom()),
+	};
+}
+
+// 搜索框的底色、细边和阴影画在子控件之下，阴影可以超出控件矩形。
+class SearchSurface final : public QGraphicsEffect {
+public:
+	explicit SearchSurface(Fn<void(QPainter&)> paint)
+	: _paint(std::move(paint)) {
+	}
+
+	QRectF boundingRectFor(const QRectF &rect) const override {
+		return rect.marginsAdded(QMarginsF(SearchShadowExtend()));
+	}
+
+protected:
+	void draw(QPainter *p) override {
+		p->save();
+		_paint(*p);
+		p->restore();
+		drawSource(p);
+	}
+
+private:
+	const Fn<void(QPainter&)> _paint;
+
+};
+
 } // namespace
 
 // kTagUnderline is not used for Markdown.
@@ -1956,6 +2034,16 @@ InputField::InputField(
 
 	if (_st.textBg->c.alphaF() >= 1. && !_st.borderRadius) {
 		setAttribute(Qt::WA_OpaquePaintEvent);
+	}
+	if (_st.search) {
+		setGraphicsEffect(new SearchSurface([=](QPainter &p) {
+			paintSearchBackground(
+				p,
+				rect(),
+				_st,
+				_a_focused.value(_focused ? 1. : 0.),
+				underMouse());
+		}));
 	}
 
 	_inner->setFont(_st.style.font->f);
@@ -2900,8 +2988,10 @@ void InputField::paintSurrounding(
 		float64 errorDegree,
 		float64 focusedDegree) {
 	if (_st.search) {
-		paintSearchBackground(p, rect(), _st, focusedDegree, underMouse());
-	} else if (_st.borderRadius > 0) {
+		// 底色由 SearchSurface 在子控件之下绘制。
+		return;
+	}
+	if (_st.borderRadius > 0) {
 		paintRoundSurrounding(p, clip, errorDegree, focusedDegree);
 	} else {
 		paintFlatSurrounding(p, clip, errorDegree, focusedDegree);
@@ -2914,21 +3004,27 @@ void InputField::paintSearchBackground(
 		const style::InputField &st,
 		float64 focused,
 		bool hovered) {
-	const auto neutral = [](const QColor &color) {
-		const auto gray = qGray(color.rgb());
-		return QColor(gray, gray, gray, color.alpha());
-	};
-	const auto background = neutral(st.textBg->c);
-	const auto normal = hovered
-		? anim::color(background, neutral(st.textFg->c), .035)
-		: background;
-	const auto active = anim::color(
-		neutral(st.textBgActive->c), neutral(st.textFg->c), .055);
-	p.setPen(Qt::NoPen);
-	p.setBrush(anim::color(normal, active, focused));
-	const auto radius = std::min(st.heightMin, rect.height()) / 2.;
+	// 浅色底保持白色，靠细边和阴影划出边界；暗色底向白色提亮。
+	const auto &looks = (st.textBg->c.lightnessF() < .5)
+		? kSearchDark
+		: kSearchLight;
+	const auto look = MixLook(looks[hovered ? 1 : 0], looks[2], focused);
+	const auto radius = std::min(st.heightMin, rect.height()) / 2;
+	SearchShadow(false).paint(p, rect, radius, look.tight);
+	SearchShadow(true).paint(p, rect, radius, look.wide);
+
+	auto line = st.textFg->c;
+	line.setAlphaF(look.line);
+	auto pen = QPen(line);
+	pen.setWidthF(1.);
+	p.setPen(pen);
+	p.setBrush(anim::color(
+		anim::color(st.textBg, st.textBgActive, focused),
+		QColor(255, 255, 255),
+		look.lift));
 	const auto hq = PainterHighQualityEnabler(p);
-	p.drawRoundedRect(rect, radius, radius);
+	const auto body = QRectF(rect).marginsRemoved({ .5, .5, .5, .5 });
+	p.drawRoundedRect(body, radius - .5, radius - .5);
 }
 
 void InputField::enterEventHook(QEnterEvent *e) {
@@ -3009,7 +3105,10 @@ void InputField::paintEvent(QPaintEvent *e) {
 			st::searchFieldPadding,
 			(height() - st::defaultSearchFieldIcon.height()) / 2,
 			width(),
-			anim::color(_st.placeholderFg, _st.textFg, focusedDegree));
+			anim::color(
+				_st.placeholderFg,
+				st::windowActiveTextFg,
+				focusedDegree));
 	}
 
 	const auto margins = placeholderPaintMargins();

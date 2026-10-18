@@ -1121,10 +1121,21 @@ searchFieldHeight: 36px;
 searchFieldPadding: 13px;
 searchFieldIconSkip: 26px;
 defaultSearchFieldIcon: icon {{ "search_field", windowSubTextFg }};
+// 搜索框浮层阴影，外扩不超过 5px 侧边、6px 底边，容器需留出这段距离。
+searchFieldShadowTight: BoxShadow {
+	blurRadius: 2px;
+	offset: point(0px, 1px);
+	opacity: 1.;
+}
+searchFieldShadowWide: BoxShadow {
+	blurRadius: 5px;
+	offset: point(0px, 1px);
+	opacity: 1.;
+}
 defaultSearchField: InputField(defaultInputField) {
 	search: true;
-	textBg: windowBgOver;
-	textBgActive: windowBgOver;
+	textBg: windowBg;
+	textBgActive: windowBg;
 	textMargins: margins(39px, 8px, 32px, 6px);
 	placeholderFg: windowSubTextFg;
 	placeholderFgActive: windowSubTextFg;
