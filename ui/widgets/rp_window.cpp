@@ -14,10 +14,10 @@
 namespace Ui {
 
 QColor WindowShellBackground() {
-	// 暗色窗口外框固定为不透明灰色，避免随主题强调色变化。
+	// 窗口外框按明暗主题使用固定灰色，避免随主题强调色变化。
 	return (st::windowBg->c.lightnessF() < .5)
 		? QColor(0x30, 0x30, 0x30)
-		: st::windowShellBg->c;
+		: QColor(0xF2, 0xF2, 0xF2);
 }
 
 QColor WindowDividerColor() {
