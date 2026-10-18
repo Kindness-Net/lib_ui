@@ -96,7 +96,8 @@ bool AbstractCheckView::animating() const {
 }
 
 void AbstractCheckView::setOver(bool over, anim::type animated) {
-	if (_over == over) {
+	// 立即切换时仍需停止未结束的动画，即使目标状态没有变化。
+	if (_over == over && animated != anim::type::instant) {
 		return;
 	}
 	_over = over;
