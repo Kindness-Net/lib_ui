@@ -170,6 +170,9 @@ PopupMenu::PopupMenu(QWidget *parent, QMenu *menu, const style::PopupMenu &st)
 void PopupMenu::init() {
 	using namespace rpl::mappers;
 
+	_scroll->setVerticalBarTopSkip(_st.radius);
+	_scroll->setVerticalBarBottomSkip(_st.radius);
+
 	Integration::Instance().forcePopupMenuHideRequests(
 	) | rpl::on_next([=] {
 		hideMenu(true);
