@@ -139,9 +139,8 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 }
 
 void TitleWidget::paintEvent(QPaintEvent *e) {
-	// 暗色标题栏始终不透明，激活状态和窗口材质都不改变底色。
-	if (st::windowBg->c.lightnessF() < .5
-		|| !window()->property("ExtrasWindowMaterialActive").toBool()) {
+	// 材质生效时透出系统背景，关闭或不可用时恢复不透明底色。
+	if (!window()->property("ExtrasWindowMaterialActive").toBool()) {
 		QPainter(this).fillRect(e->rect(), WindowShellBackground());
 	}
 }
