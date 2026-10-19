@@ -139,6 +139,7 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 }
 
 void TitleWidget::paintEvent(QPaintEvent *e) {
+	// 材质生效时透出系统背景，关闭或不可用时恢复不透明底色。
 	if (!window()->property("ExtrasWindowMaterialActive").toBool()) {
 		QPainter(this).fillRect(e->rect(), WindowShellBackground());
 	}
