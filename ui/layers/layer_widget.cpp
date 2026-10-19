@@ -728,10 +728,19 @@ void LayerStackWidget::setCacheImages() {
 	auto bodyCache = QPixmap(), mainMenuCache = QPixmap();
 	auto specialLayerCache = QPixmap();
 	if (_specialLayer) {
-		specialLayerCache = GrabLayer(
-			_specialLayer.data(),
-			SpecialLayerShadow(),
-			rect());
+		// 截图可能改变弹层尺寸，尺寸稳定再用。
+		constexpr auto kMaxGrabAttempts = 3;
+		for (auto i = 0; i != kMaxGrabAttempts; ++i) {
+			SendPendingMoveResizeEvents(_specialLayer.data());
+			const auto grabbed = _specialLayer->geometry();
+			specialLayerCache = GrabLayer(
+				_specialLayer.data(),
+				SpecialLayerShadow(),
+				rect());
+			if (_specialLayer->geometry() == grabbed) {
+				break;
+			}
+		}
 	}
 	auto layerCache = QPixmap();
 	if (const auto layer = currentLayer()) {
