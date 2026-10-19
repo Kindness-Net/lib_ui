@@ -824,8 +824,7 @@ void WindowHelper::updateWindowFrameColors(bool active) {
 		return;
 	}
 	const auto bg = WindowShellBackground();
-	COLORREF bgRef = (st::windowBg->c.lightnessF() >= .5
-		&& window()->property("ExtrasWindowMaterialActive").toBool())
+	COLORREF bgRef = window()->property("ExtrasWindowMaterialActive").toBool()
 		? COLORREF(0xFFFFFFFF)
 		: RGB(bg.red(), bg.green(), bg.blue());
 	DwmSetWindowAttribute(
