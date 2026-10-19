@@ -194,7 +194,8 @@ void palette::compute(int index, int fallbackIndex, TempColorData value) {
 				} else {
 					colorize(i->second, value.r, value.g, value.b, with);
 				}
-				_status[index] = Status::Loaded;
+				// 染色后的默认值不算主题加载，后续键不能借回退链复制它。
+				_status[index] = Status::Created;
 			}
 			new (data(index)) internal::ColorData(value.r, value.g, value.b, value.a);
 		}
