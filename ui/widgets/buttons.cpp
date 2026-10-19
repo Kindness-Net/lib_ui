@@ -1149,10 +1149,6 @@ void SettingsButton::setText(TextWithEntities &&text) {
 	update();
 }
 
-bool SettingsCardsPlain() {
-	return !st::settingsCardBorderFg->c.alpha();
-}
-
 void MarkFlatRowHover(not_null<QWidget*> container) {
 	container->setProperty(kFlatRowHoverProperty, true);
 }

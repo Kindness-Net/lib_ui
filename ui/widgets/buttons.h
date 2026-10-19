@@ -372,9 +372,6 @@ private:
 
 };
 
-// 设置卡片描边全透明时按无卡片列表绘制：整行圆角悬停、组间细线、强调色组标题。
-[[nodiscard]] bool SettingsCardsPlain();
-
 // 对话框及其面板形态里，行不画悬停底色和整行水波纹，悬停只加深控件本体和文字。
 // 对话框内容自动生效；同时有面板形态的内容由容器调用 MarkFlatRowHover 标记。
 void MarkFlatRowHover(not_null<QWidget*> container);
