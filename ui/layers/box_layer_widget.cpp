@@ -498,7 +498,8 @@ void BoxLayerWidget::updateButtonsPositions() {
 		_closeButton->raise();
 		right += _closeButton->width() + st::boxTitleButtonsSkip;
 	}
-	for (const auto &button : _topButtons) {
+	for (const auto &entry : _topButtons) {
+		const auto &button = entry.button;
 		if (button->isHidden()) {
 			continue;
 		}
@@ -525,7 +526,8 @@ int BoxLayerWidget::titleRightSkip() const {
 			+ _closeButton->width()
 			+ st::boxTitleButtonsSkip;
 	}
-	for (const auto &button : _topButtons) {
+	for (const auto &entry : _topButtons) {
+		const auto &button = entry.button;
 		if (button->isHidden()) {
 			continue;
 		}
@@ -565,7 +567,9 @@ void BoxLayerWidget::clearButtons() {
 		button.destroy();
 	}
 	_leftButton.destroy();
-	base::take(_topButtons);
+	std::erase_if(_topButtons, [](const TopButton &entry) {
+		return !entry.pinned;
+	});
 	updateTitlePosition();
 	updateSize();
 }
@@ -601,8 +605,21 @@ void BoxLayerWidget::addLeftButton(object_ptr<AbstractButton> button) {
 }
 
 void BoxLayerWidget::addTopButton(object_ptr<AbstractButton> button) {
-	_topButtons.push_back(base::unique_qptr<AbstractButton>(button.release()));
-	const auto raw = _topButtons.back().get();
+	pushTopButton(std::move(button), false);
+}
+
+void BoxLayerWidget::addPinnedTopButton(object_ptr<AbstractButton> button) {
+	pushTopButton(std::move(button), true);
+}
+
+void BoxLayerWidget::pushTopButton(
+		object_ptr<AbstractButton> button,
+		bool pinned) {
+	_topButtons.push_back({
+		base::unique_qptr<AbstractButton>(button.release()),
+		pinned,
+	});
+	const auto raw = _topButtons.back().button.get();
 	raw->setParent(this);
 	raw->show();
 	rpl::combine(

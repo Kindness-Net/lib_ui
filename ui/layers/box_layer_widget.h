@@ -63,6 +63,7 @@ public:
 	void addButton(object_ptr<AbstractButton> button) override;
 	void addLeftButton(object_ptr<AbstractButton> button) override;
 	void addTopButton(object_ptr<AbstractButton> button) override;
+	void addPinnedTopButton(object_ptr<AbstractButton> button) override;
 	void addCloseButton(object_ptr<AbstractButton> button) override;
 	void showLoading(bool show) override;
 	void updateButtonsPositions() override;
@@ -142,6 +143,7 @@ private:
 	void createCloseButton();
 	void setCloseButton(object_ptr<AbstractButton> button, bool custom);
 	[[nodiscard]] int closeButtonRight() const;
+	void pushTopButton(object_ptr<AbstractButton> button, bool pinned);
 
 	const style::Box *_st = nullptr;
 	not_null<LayerStackDelegate*> _layer;
@@ -171,7 +173,11 @@ private:
 
 	std::vector<object_ptr<AbstractButton>> _buttons;
 	object_ptr<AbstractButton> _leftButton = { nullptr };
-	std::vector<base::unique_qptr<AbstractButton>> _topButtons;
+	struct TopButton {
+		base::unique_qptr<AbstractButton> button;
+		bool pinned = false;
+	};
+	std::vector<TopButton> _topButtons;
 	object_ptr<AbstractButton> _closeButton = { nullptr };
 	bool _customCloseButton = false;
 	std::unique_ptr<LoadingProgress> _loadingProgress;

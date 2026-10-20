@@ -80,6 +80,7 @@ public:
 	virtual void addButton(object_ptr<AbstractButton> button) = 0;
 	virtual void addLeftButton(object_ptr<AbstractButton> button) = 0;
 	virtual void addTopButton(object_ptr<AbstractButton> button) = 0;
+	virtual void addPinnedTopButton(object_ptr<AbstractButton> button) = 0;
 	virtual void addCloseButton(object_ptr<AbstractButton> button) = 0;
 	virtual void showLoading(bool show) = 0;
 	virtual void updateButtonsPositions() = 0;
@@ -192,6 +193,10 @@ public:
 	QPointer<IconButton> addTopButton(
 		const style::IconButton &st,
 		Fn<void()> clickCallback = nullptr);
+	// 不随 clearButtons 清除，供内容自带的入口（如搜索）使用。
+	QPointer<IconButton> addPinnedTopButton(
+		const style::IconButton &st,
+		Fn<void()> clickCallback = nullptr);
 	QPointer<IconButton> addCloseButton(
 		const style::IconButton &st,
 		Fn<void()> clickCallback = nullptr);
@@ -216,8 +221,13 @@ public:
 		_boxClosingStream.fire({});
 	}
 
+	// 接入图层后、prepare 之前触发，构造期创建的子控件借此在弹出前完成布局。
+	[[nodiscard]] rpl::producer<> delegateSet() const {
+		return _delegateSetStream.events();
+	}
 	void setDelegate(not_null<BoxContentDelegate*> newDelegate) {
 		_delegate = newDelegate;
+		_delegateSetStream.fire({});
 		_preparing = true;
 		prepare();
 		finishPrepare();
@@ -342,6 +352,7 @@ private:
 	Ui::Animations::Simple _scrollAnimation;
 
 	rpl::event_stream<> _boxClosingStream;
+	rpl::event_stream<> _delegateSetStream;
 
 	crl::time _layerAnimationDuration = 0;
 
