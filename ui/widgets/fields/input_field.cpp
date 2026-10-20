@@ -33,6 +33,7 @@
 #include <QtCore/QtMath>
 #include <QtCore/QMimeData>
 #include <QtCore/QRegularExpression>
+#include <QtGui/QBackingStore>
 #include <QtGui/QClipboard>
 #include <QtGui/QTextBlock>
 #include <QtGui/QTextDocumentFragment>
@@ -1642,8 +1643,9 @@ constexpr auto kSearchDark = std::array<SearchSurfaceLook, 3>{ {
 // 搜索框的底色、细边和阴影画在子控件之下，阴影可以超出控件矩形。
 class SearchSurface final : public QGraphicsEffect {
 public:
-	explicit SearchSurface(Fn<void(QPainter&)> paint)
-	: _paint(std::move(paint)) {
+	SearchSurface(not_null<QWidget*> widget, Fn<void(QPainter&)> paint)
+	: _widget(widget)
+	, _paint(std::move(paint)) {
 	}
 
 	QRectF boundingRectFor(const QRectF &rect) const override {
@@ -1655,10 +1657,22 @@ protected:
 		p->save();
 		_paint(*p);
 		p->restore();
-		drawSource(p);
+		const auto store = _widget->backingStore();
+		if (store && p->device() == store->paintDevice()) {
+			drawSource(p);
+			return;
+		}
+		// 共用外部画笔截图时 drawSource 会重复叠加控件偏移。
+		auto offset = QPoint();
+		const auto source = sourcePixmap(
+			Qt::LogicalCoordinates,
+			&offset,
+			QGraphicsEffect::NoPad);
+		p->drawPixmap(offset, source);
 	}
 
 private:
+	const not_null<QWidget*> _widget;
 	const Fn<void(QPainter&)> _paint;
 
 };
@@ -2036,7 +2050,7 @@ InputField::InputField(
 		setAttribute(Qt::WA_OpaquePaintEvent);
 	}
 	if (_st.search) {
-		setGraphicsEffect(new SearchSurface([=](QPainter &p) {
+		setGraphicsEffect(new SearchSurface(this, [=](QPainter &p) {
 			paintSearchBackground(
 				p,
 				rect(),
