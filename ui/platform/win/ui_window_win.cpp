@@ -7,6 +7,7 @@
 #include "ui/platform/win/ui_window_win.h"
 
 #include "ui/inactive_press.h"
+#include "ui/gl/gl_detection.h"
 #include "ui/platform/win/ui_window_title_win.h"
 #include "ui/platform/win/ui_windows_direct_manipulation.h"
 #include "ui/platform/ui_platform_utility.h"
@@ -30,6 +31,10 @@
 #include <QtWidgets/QApplication>
 #include <qpa/qplatformnativeinterface.h>
 #include <qpa/qwindowsysteminterface.h>
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+#include <QRhiWidget>
+#endif // Qt >= 6.7
 
 #include <dwmapi.h>
 #include <shellapi.h>
@@ -175,6 +180,25 @@ void FixAeroSnap(HWND handle) {
 		result |= Qt::MetaModifier;
 	}
 	return result;
+}
+
+// 材质窗口经 DirectComposition 合成，保留 GDI 重定向表面时系统截图会发白。
+// Qt 只认创建时的环境变量，且仅 D3D11 合成能脱离重定向表面显示。
+void CreateWithoutRedirectionSurface(not_null<QWidget*> window) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	const auto primed = window->findChild<QRhiWidget*>(
+		QString(),
+		Qt::FindDirectChildrenOnly);
+	if (!window->property("ExtrasWindowMaterialCapable").toBool()
+		|| !primed
+		|| GL::WidgetsRhiVulkan()) {
+		return;
+	}
+	constexpr auto kName = "QT_QPA_DISABLE_REDIRECTION_SURFACE";
+	qputenv(kName, "1");
+	window->winId();
+	qunsetenv(kName);
+#endif // Qt >= 6.7
 }
 
 } // namespace
@@ -451,6 +475,9 @@ void WindowHelper::init() {
 	}) | rpl::on_next([=] {
 		enableCloakingForHidden();
 	}, window()->lifetime());
+
+	// 句柄订阅全部就绪后再创建，创建期间的原生消息才能找到 _handle。
+	CreateWithoutRedirectionSurface(window());
 }
 
 bool WindowHelper::filterNativeEvent(
@@ -465,6 +492,16 @@ bool WindowHelper::filterNativeEvent(
 	}
 
 	switch (msg) {
+
+	case WM_PAINT: {
+		// 没有重定向表面时，Qt 处理还原后的 WM_PAINT 不补画积压的重绘，整窗画面会停住。
+		const auto style = GetWindowLongPtr(_handle, GWL_EXSTYLE);
+		if (style & WS_EX_NOREDIRECTIONBITMAP) {
+			QCoreApplication::postEvent(
+				window(),
+				new QEvent(QEvent::UpdateRequest));
+		}
+	} return false;
 
 	case WM_STYLECHANGING: {
 		if (wParam == WPARAM(GWL_STYLE)
