@@ -61,7 +61,7 @@ std::unique_ptr<RpWindow> Window::createWindow(
 		const Fn<Backend(Capabilities)> &chooseBackend,
 		bool translucent) {
 	_backend = chooseBackend(CheckCapabilities());
-	return std::make_unique<RpWindow>(translucent);
+	return std::make_unique<RpWindow>(translucent, _backend == Backend::QRhi);
 }
 
 } // namespace Ui::GL

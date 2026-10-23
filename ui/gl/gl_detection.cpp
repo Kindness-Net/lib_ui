@@ -309,6 +309,10 @@ Capabilities CheckCapabilities(QWidget *widget) {
 	if (WidgetsRhiSupported()) {
 		return {};
 	}
+	return CheckOpenGLCapabilities(widget);
+}
+
+Capabilities CheckOpenGLCapabilities(QWidget *widget) {
 	if (!Platform::IsMac()) {
 		if (ForceDisabled) {
 			LOG_ONCE(("OpenGL: Force-disabled."));

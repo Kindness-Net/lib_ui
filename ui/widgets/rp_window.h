@@ -42,7 +42,8 @@ public:
 	enum class Surface { Opaque, NativeMaterial };
 	explicit RpWindow(Surface surface, QWidget *parent = nullptr);
 	explicit RpWindow(QWidget *parent = nullptr);
-	explicit RpWindow(bool translucent, QWidget *parent = nullptr);
+	// rhi 为假时不预热 RHI，供自带 OpenGL 画布的窗口使用，避免同窗口混用两种后端。
+	RpWindow(bool translucent, bool rhi, QWidget *parent = nullptr);
 	~RpWindow();
 
 	[[nodiscard]] not_null<RpWidget*> body();

@@ -39,6 +39,8 @@ extern const char kOptionUseQtRhi[];
 extern const char kOptionEnableVulkanRhi[];
 
 [[nodiscard]] Capabilities CheckCapabilities(QWidget *widget = nullptr);
+// 不论是否启用 RHI 都探测 OpenGL，供需要单独使用 OpenGL 的窗口选择后端。
+[[nodiscard]] Capabilities CheckOpenGLCapabilities(QWidget *widget = nullptr);
 [[nodiscard]] Backend ChooseBackendDefault(Capabilities capabilities);
 
 [[nodiscard]] bool WidgetsRhiEnabled();
