@@ -805,7 +805,6 @@ bool WindowHelper::nativeResize() const {
 		}
 		switch (window()->windowHandle()->surfaceType()) {
 		case QSurface::RasterSurface:
-		case QSurface::RasterGLSurface:
 			return window()->windowHandle()->format().alphaBufferSize() <= 0;
 		}
 
