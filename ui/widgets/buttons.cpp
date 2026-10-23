@@ -683,12 +683,15 @@ void IconButton::paintEvent(QPaintEvent *e) {
 		p.setOpacity(overIconOpacity);
 		p.setPen(Qt::NoPen);
 		p.setBrush(_st.bgOver);
+		const auto radius = _st.rippleCircle
+			? (_st.rippleAreaSize / 2.)
+			: float64(st::iconButtonRadius);
 		p.drawRoundedRect(
 			QRect(
 				_st.rippleAreaPosition,
 				QSize(_st.rippleAreaSize, _st.rippleAreaSize)),
-			st::iconButtonRadius,
-			st::iconButtonRadius);
+			radius,
+			radius);
 		p.setOpacity(1.);
 	}
 	paintRipple(p, _st.rippleAreaPosition, _rippleColorOverride ? &(*_rippleColorOverride)->c : nullptr);
@@ -765,9 +768,10 @@ QPoint IconButton::prepareRippleStartPosition() const {
 }
 
 QImage IconButton::prepareRippleMask() const {
-	return RippleAnimation::RoundRectMask(
-		QSize(_st.rippleAreaSize, _st.rippleAreaSize),
-		st::iconButtonRadius);
+	const auto size = QSize(_st.rippleAreaSize, _st.rippleAreaSize);
+	return _st.rippleCircle
+		? RippleAnimation::EllipseMask(size)
+		: RippleAnimation::RoundRectMask(size, st::iconButtonRadius);
 }
 
 CrossButton::CrossButton(QWidget *parent, const style::CrossButton &st) : RippleButton(parent, st.ripple)

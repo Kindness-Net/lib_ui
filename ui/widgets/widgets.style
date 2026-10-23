@@ -352,6 +352,8 @@ IconButton {
 	height: pixels;
 	bgOver: color;
 	fillOnHover: bool;
+	// 悬停底与波纹画成圆形，否则为 iconButtonRadius 圆角方形。
+	rippleCircle: bool;
 
 	icon: icon;
 	iconOver: icon;
