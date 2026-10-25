@@ -128,8 +128,8 @@ public:
 	void overrideBodyColor(std::optional<QColor> color);
 	void overrideBottomBarColor(std::optional<QColor> color);
 	void setBottomBarHeight(int height);
-	// 宿主接管系统材质时开启：去掉自绘阴影边距与底色，圆角与阴影交给系统。
-	void setSystemBackdrop(bool enabled);
+	// 系统材质接管圆角与阴影，窗口只绘制宿主指定的混色层。
+	void setSystemBackdrop(bool enabled, QColor tint = Qt::transparent);
 	[[nodiscard]] style::palette *titleOverridePalette() const;
 
 	base::weak_ptr<Toast::Instance> showToast(Toast::Config &&config);
@@ -237,6 +237,7 @@ private:
 	bool _hideOnDeactivate = false;
 	bool _useTransparency = true;
 	bool _systemBackdrop = false;
+	QColor _systemBackdropTint = Qt::transparent;
 	bool _backAllowed = false;
 	bool _closeAllowed = true;
 	style::margins _padding;

@@ -697,8 +697,13 @@ void SeparatePanel::setBottomBarHeight(int height) {
 	update();
 }
 
-void SeparatePanel::setSystemBackdrop(bool enabled) {
+void SeparatePanel::setSystemBackdrop(bool enabled, QColor tint) {
+	if (_systemBackdrop == enabled && _systemBackdropTint == tint) {
+		return;
+	}
+	_systemBackdropTint = tint;
 	if (_systemBackdrop == enabled) {
+		update();
 		return;
 	}
 	const auto was = windowPadding();
@@ -721,6 +726,11 @@ void SeparatePanel::setSystemBackdrop(bool enabled) {
 	}
 	updateControlsGeometry();
 	update();
+	if (enabled && !_animationCache.isNull()) {
+		// 切入系统材质时结束旧动画，关闭通知留在当前刷新之后。
+		_opacityAnimation.stop();
+		crl::on_main(this, [=] { finishAnimating(); });
+	}
 }
 
 style::palette *SeparatePanel::titleOverridePalette() const {
@@ -1542,6 +1552,8 @@ void SeparatePanel::paintEvent(QPaintEvent *e) {
 		}
 	}
 	if (_systemBackdrop) {
+		p.setCompositionMode(QPainter::CompositionMode_Source);
+		p.fillRect(e->rect(), _systemBackdropTint);
 		return;
 	}
 	if (_useTransparency && !_fullscreen.current()) {
