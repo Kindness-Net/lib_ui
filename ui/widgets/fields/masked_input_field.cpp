@@ -187,6 +187,7 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 	}
 
 	p.setClipRect(r);
+	const auto baseline = placeholderBaseline();
 	if (_st.placeholderScale > 0. && !_placeholderPath.isEmpty()) {
 		auto placeholderShiftDegree = _a_placeholderShifted.value(_placeholderShifted ? 1. : 0.);
 		p.save();
@@ -196,6 +197,7 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 		auto placeholderLeft = anim::interpolate(0, _st.placeholderShiftLeft, placeholderShiftDegree);
 
 		QRect r(rect().marginsRemoved(_textMargins + _st.placeholderMargins));
+		r.moveTop(baseline - _st.placeholderFont->ascent);
 		r.translate(placeholderLeft, placeholderTop);
 		if (style::RightToLeft()) r.moveLeft(width() - r.left() - r.width());
 
@@ -226,7 +228,15 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 
 			p.setFont(_st.placeholderFont);
 			p.setPen(anim::pen(_st.placeholderFg, _st.placeholderFgActive, focusedDegree));
-			p.drawText(r, _placeholder, _st.placeholderAlign);
+			const auto align = _st.placeholderAlign;
+			const auto textWidth = _st.placeholderFont->width(_placeholder);
+			const auto textLeft = r.left()
+				+ ((align & Qt::AlignHCenter)
+					? (r.width() - textWidth) / 2.
+					: (align & Qt::AlignRight)
+					? (r.width() - textWidth) * 1.
+					: 0.);
+			p.drawText(QPointF(textLeft, baseline), _placeholder);
 
 			p.restore();
 			p.setOpacity(1.);
@@ -390,6 +400,20 @@ void MaskedInputField::startPlaceholderAnimation() {
 
 QRect MaskedInputField::placeholderRect() const {
 	return rect().marginsRemoved(_textMargins + _st.placeholderMargins);
+}
+
+int MaskedInputField::placeholderBaseline() const {
+	const auto metrics = fontMetrics();
+	const auto contents = contentsRect();
+	const auto lineHeight = std::max(
+		metrics.height(), metrics.boundingRect(getDisplayedText()).height());
+	const auto textTop = (alignment() & Qt::AlignBottom)
+		? contents.y() + contents.height() - lineHeight - 1
+		: (alignment() & Qt::AlignTop)
+		? contents.y() + 1
+		: contents.y() + (contents.height() - lineHeight + 1) / 2;
+	// 沿用 QLineEdit 的基线，补全文字与正文共用同一位置。
+	return textTop + metrics.ascent() + _st.placeholderMargins.top();
 }
 
 style::font MaskedInputField::phFont() {

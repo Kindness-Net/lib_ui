@@ -2036,14 +2036,6 @@ InputField::InputField(
 		// But we don't want to get vertical scroll in case the field
 		// fits pixel-perfect with the default font, so we allow the
 		// bottom margin to be the same shift, but negative.
-
-		if (_mode != Mode::SingleLine) {
-			const auto metrics = QFontMetricsF(_st.style.font->f);
-			const auto leading = std::max(metrics.leading(), qreal(0.0));
-			const auto adjustment = (metrics.ascent() + leading)
-				- ((_st.style.font->height * 4) / 5);
-			_placeholderCustomFontSkip = int(base::SafeRound(-adjustment));
-		}
 	}
 
 	if (_st.textBg->c.alphaF() >= 1. && !_st.borderRadius) {
@@ -4364,14 +4356,16 @@ QMargins InputField::fullTextMargins() const {
 }
 
 QMargins InputField::placeholderPaintMargins() const {
-	return fullTextMargins()
-		+ QMargins(0, _placeholderCustomFontSkip, 0, 0)
-		+ _st.placeholderMargins;
+	auto margins = fullTextMargins() + _st.placeholderMargins;
+	margins.setTop(int(base::SafeRound(nonScaledPlaceholderBaseline()))
+		- _st.placeholderFont->ascent);
+	return margins;
 }
 
 float64 InputField::nonScaledPlaceholderBaseline() const {
-	return placeholderPaintMargins().top()
-		+ QTextEditLineAscent(_st.placeholderFont, BlockLineHeight(_st));
+	// 占位文字沿用正文基线，字体补偿只由正文边距承担。
+	return fullTextMargins().top() + _st.placeholderMargins.top()
+		+ QTextEditLineAscent(_st.style.font, BlockLineHeight(_st));
 }
 
 void InputField::setDisplayFocused(bool focused) {

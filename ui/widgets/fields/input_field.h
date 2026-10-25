@@ -664,7 +664,6 @@ private:
 
 	QMargins _additionalMargins;
 	QMargins _customFontMargins;
-	int _placeholderCustomFontSkip = 0;
 	int _requestedDocumentTopMargin = 0;
 
 	bool _forcePlaceholderHidden = false;

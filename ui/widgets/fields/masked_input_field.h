@@ -107,6 +107,7 @@ protected:
 
 	void placeholderAdditionalPrepare(QPainter &p);
 	QRect placeholderRect() const;
+	[[nodiscard]] int placeholderBaseline() const;
 
 	void setTextMargins(const QMargins &mrg);
 	const style::InputField &_st;
