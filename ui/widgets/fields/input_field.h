@@ -437,6 +437,7 @@ public:
 	~InputField();
 
 	static void paintSearchBackground(
+		not_null<const QWidget*> widget,
 		QPainter &p,
 		QRect rect,
 		const style::InputField &st,

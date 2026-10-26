@@ -8,6 +8,7 @@
 
 #include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
+#include "ui/style/style_widget_color.h"
 #include "ui/style/style_core_direction.h"
 #include "styles/style_widgets.h"
 #include "styles/palette.h"
@@ -228,7 +229,7 @@ void SideBarButton::paintEvent(QPaintEvent *e) {
 	if (_showText) {
 		p.setPen(_active
 			? _st.textFgActive->c
-			: _colorOverride.value_or(_st.textFg->c));
+			: _colorOverride.value_or(ResolveWidgetColor(this, _st.textFg->c)));
 		_text.draw(p, {
 			.position = { _st.textSkip, _st.textTop },
 			.availableWidth = (width() - 2 * _st.textSkip),

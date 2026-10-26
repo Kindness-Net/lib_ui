@@ -9,11 +9,13 @@
 #include "ui/style/style_core_palette.h"
 #include "ui/style/style_core.h"
 #include "ui/painter.h"
+#include "ui/style/style_widget_color.h"
 #include "base/basic_types.h"
 
 #include <QtCore/QMutex>
 #include <QtGui/QPainter>
 #include <QtSvg/QSvgRenderer>
+#include <QtWidgets/QWidget>
 
 namespace style {
 namespace internal {
@@ -203,6 +205,13 @@ QSize MonoIcon::inner() const {
 }
 
 void MonoIcon::paint(QPainter &p, const QPoint &pos, int outerw) const {
+	if (const auto widget = dynamic_cast<const QWidget*>(p.device())) {
+		const auto color = Ui::ResolveWidgetColor(widget, _color->c);
+		if (color != _color->c) {
+			paint(p, pos, outerw, color);
+			return;
+		}
+	}
 	const auto partPosX = RightToLeft()
 		? (outerw - pos.x() - width() + _padding.right())
 		: (pos.x() + _padding.left());
@@ -218,6 +227,13 @@ void MonoIcon::paint(QPainter &p, const QPoint &pos, int outerw) const {
 
 void MonoIcon::fill(QPainter &p, const QRect &rect) const {
 	Expects(_padding.isNull());
+	if (const auto widget = dynamic_cast<const QWidget*>(p.device())) {
+		const auto color = Ui::ResolveWidgetColor(widget, _color->c);
+		if (color != _color->c) {
+			fill(p, rect, color);
+			return;
+		}
+	}
 
 	ensureColorized();
 	if (_pixmap.isNull()) {

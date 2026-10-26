@@ -26,6 +26,7 @@
 #include "ui/painter.h"
 #include "ui/qt_object_factory.h"
 #include "ui/integration.h"
+#include "ui/style/style_widget_color.h"
 #include "ui/screen_reader_mode.h"
 #include "styles/style_widgets.h"
 #include "styles/palette.h"
@@ -2038,12 +2039,10 @@ InputField::InputField(
 		// bottom margin to be the same shift, but negative.
 	}
 
-	if (_st.textBg->c.alphaF() >= 1. && !_st.borderRadius) {
-		setAttribute(Qt::WA_OpaquePaintEvent);
-	}
 	if (_st.search) {
 		setGraphicsEffect(new SearchSurface(this, [=](QPainter &p) {
 			paintSearchBackground(
+				this,
 				p,
 				rect(),
 				_st,
@@ -2280,7 +2279,7 @@ bool InputField::viewportEventInner(QEvent *e) {
 }
 
 void InputField::applyPaletteColors(bool onlyIfChanged) {
-	const auto text = _st.textFg->c;
+	const auto text = ResolveWidgetColor(this, _st.textFg->c);
 	const auto highlight = st::msgInBgSelected->c;
 	const auto highlighted = st::historyTextInFgSelected->c;
 	auto p = _inner->palette();
@@ -3005,6 +3004,7 @@ void InputField::paintSurrounding(
 }
 
 void InputField::paintSearchBackground(
+		not_null<const QWidget*> widget,
 		QPainter &p,
 		QRect rect,
 		const style::InputField &st,
@@ -3019,13 +3019,14 @@ void InputField::paintSearchBackground(
 	SearchShadow(false).paint(p, rect, radius, look.tight);
 	SearchShadow(true).paint(p, rect, radius, look.wide);
 
-	auto line = st.textFg->c;
+	auto line = ResolveWidgetColor(widget, st.textFg->c, WidgetColorRole::Border);
 	line.setAlphaF(look.line);
 	auto pen = QPen(line);
 	pen.setWidthF(1.);
 	p.setPen(pen);
 	p.setBrush(anim::color(
-		anim::color(st.textBg, st.textBgActive, focused),
+		anim::color(ResolveWidgetColor(widget, st.textBg->c, WidgetColorRole::Background),
+			ResolveWidgetColor(widget, st.textBgActive->c, WidgetColorRole::Background), focused),
 		QColor(255, 255, 255),
 		look.lift));
 	const auto hq = PainterHighQualityEnabler(p);
@@ -3055,10 +3056,15 @@ void InputField::paintRoundSurrounding(
 	const auto divide = _st.borderDenominator ? _st.borderDenominator : 1;
 	const auto border = _st.border / float64(divide);
 	const auto borderHalf = border / 2.;
-	auto pen = anim::pen(_st.borderFg, _st.borderFgActive, focusedDegree);
+	const auto color = [&](const style::color &value, WidgetColorRole role) {
+		return ResolveWidgetColor(this, value->c, role);
+	};
+	auto pen = QPen(anim::color(color(_st.borderFg, WidgetColorRole::Border),
+		color(_st.borderFgActive, WidgetColorRole::Border), focusedDegree));
 	pen.setWidthF(border);
 	p.setPen(pen);
-	p.setBrush(anim::brush(_st.textBg, _st.textBgActive, focusedDegree));
+	p.setBrush(anim::color(color(_st.textBg, WidgetColorRole::Background),
+		color(_st.textBgActive, WidgetColorRole::Background), focusedDegree));
 
 	PainterHighQualityEnabler hq(p);
 	const auto radius = _st.borderRadius - borderHalf;
@@ -3075,10 +3081,11 @@ void InputField::paintFlatSurrounding(
 		float64 errorDegree,
 		float64 focusedDegree) {
 	if (_st.textBg->c.alphaF() > 0.) {
-		p.fillRect(clip, _st.textBg);
+		p.fillRect(clip, ResolveWidgetColor(this, _st.textBg->c, WidgetColorRole::Background));
 	}
 	if (_st.border) {
-		p.fillRect(0, height() - _st.border, width(), _st.border, _st.borderFg);
+		p.fillRect(0, height() - _st.border, width(), _st.border,
+			ResolveWidgetColor(this, _st.borderFg->c, WidgetColorRole::Border));
 	}
 	const auto borderShownDegree = _a_borderShown.value(1.);
 	const auto borderOpacity = _a_borderOpacity.value(_borderVisible ? 1. : 0.);
@@ -3112,7 +3119,7 @@ void InputField::paintEvent(QPaintEvent *e) {
 			(height() - st::defaultSearchFieldIcon.height()) / 2,
 			width(),
 			anim::color(
-				_st.placeholderFg,
+				ResolveWidgetColor(this, _st.placeholderFg->c),
 				st::windowActiveTextFg,
 				focusedDegree));
 	}
@@ -3135,8 +3142,9 @@ void InputField::paintEvent(QPaintEvent *e) {
 		const auto &phFg = _placeholderFgOverride.value_or(_st.placeholderFg);
 		const auto &phFgActive = _placeholderFgOverride.value_or(_st.placeholderFgActive);
 		const auto &phFgError = _placeholderFgOverride.value_or(_st.placeholderFgError);
-		auto placeholderFg = anim::color(phFg, phFgActive, focusedDegree);
-		placeholderFg = anim::color(placeholderFg, phFgError, errorDegree);
+		auto placeholderFg = anim::color(ResolveWidgetColor(this, phFg->c),
+			ResolveWidgetColor(this, phFgActive->c), focusedDegree);
+		placeholderFg = anim::color(placeholderFg, ResolveWidgetColor(this, phFgError->c), errorDegree);
 
 		PainterHighQualityEnabler hq(p);
 		p.setPen(Qt::NoPen);
@@ -3158,7 +3166,8 @@ void InputField::paintEvent(QPaintEvent *e) {
 			p.setFont(_st.placeholderFont);
 			const auto &phFg2 = _placeholderFgOverride.value_or(_st.placeholderFg);
 			const auto &phFgActive2 = _placeholderFgOverride.value_or(_st.placeholderFgActive);
-			p.setPen(anim::pen(phFg2, phFgActive2, focusedDegree));
+			p.setPen(anim::color(ResolveWidgetColor(this, phFg2->c),
+				ResolveWidgetColor(this, phFgActive2->c), focusedDegree));
 			const auto baseline = nonScaledPlaceholderBaseline();
 			if (_st.placeholderAlign == style::al_topleft && _placeholderAfterSymbols > 0) {
 				const auto skipWidth = placeholderSkipWidth();

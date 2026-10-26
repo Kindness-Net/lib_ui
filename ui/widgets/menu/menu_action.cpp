@@ -7,6 +7,7 @@
 #include "ui/widgets/menu/menu_action.h"
 
 #include "ui/painter.h"
+#include "ui/style/style_widget_color.h"
 
 #include <QtGui/QtEvents>
 
@@ -117,7 +118,8 @@ void Action::paint(Painter &p) {
 	if (const auto icon = (selected ? _iconOver : _icon)) {
 		icon->paint(p, _st.itemIconPosition, width());
 	}
-	p.setPen(selected ? _st.itemFgOver : (enabled ? _st.itemFg : _st.itemFgDisabled));
+	p.setPen(ResolveWidgetColor(this,
+		(selected ? _st.itemFgOver : (enabled ? _st.itemFg : _st.itemFgDisabled))->c));
 	paintText(p);
 	if (hasSubmenu()) {
 		const auto skip = _st.itemRightSkip;
@@ -134,9 +136,9 @@ void Action::paint(Painter &p) {
 				_st.itemFgDisabled->c);
 		}
 	} else if (!_shortcut.isEmpty()) {
-		p.setPen(selected
+		p.setPen(ResolveWidgetColor(this, (selected
 			? _st.itemFgShortcutOver
-			: (enabled ? _st.itemFgShortcut : _st.itemFgShortcutDisabled));
+			: (enabled ? _st.itemFgShortcut : _st.itemFgShortcutDisabled))->c));
 		p.drawTextRight(
 			_st.itemPadding.right(),
 			_st.itemPadding.top(),

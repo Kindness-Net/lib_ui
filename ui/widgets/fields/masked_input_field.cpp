@@ -10,6 +10,7 @@
 #include "ui/painter.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/integration.h"
+#include "ui/style/style_widget_color.h"
 #include "styles/palette.h"
 #include "styles/style_widgets.h"
 
@@ -82,10 +83,6 @@ MaskedInputField::MaskedInputField(
 	}, lifetime());
 	updatePalette();
 
-	if (_st.textBg->c.alphaF() >= 1. && !_st.borderRadius) {
-		setAttribute(Qt::WA_OpaquePaintEvent);
-	}
-
 	connect(this, SIGNAL(textChanged(QString)), this, SLOT(onTextChange(QString)));
 	connect(this, SIGNAL(cursorPositionChanged(int,int)), this, SLOT(onCursorPositionChanged(int,int)));
 
@@ -108,10 +105,12 @@ MaskedInputField::MaskedInputField(
 
 void MaskedInputField::updatePalette() {
 	auto p = palette();
-	p.setColor(QPalette::Text, _st.textFg->c);
+	p.setColor(QPalette::Text, ResolveWidgetColor(this, _st.textFg->c));
 	p.setColor(QPalette::Highlight, st::msgInBgSelected->c);
 	p.setColor(QPalette::HighlightedText, st::historyTextInFgSelected->c);
-	setPalette(p);
+	if (palette() != p) {
+		setPalette(p);
+	}
 }
 
 void MaskedInputField::setCorrectedText(QString &now, int &nowCursor, const QString &newText, int newPos) {
@@ -146,15 +145,17 @@ void MaskedInputField::setTextMargins(const QMargins &mrg) {
 }
 
 void MaskedInputField::paintEvent(QPaintEvent *e) {
+	updatePalette();
 	auto p = QPainter(this);
 
 	auto r = rect().intersected(e->rect());
 	// 圆角输入框只画圆角底色，四角露出父控件背景。
 	if (!_st.borderRadius) {
-		p.fillRect(r, _st.textBg);
+		p.fillRect(r, ResolveWidgetColor(this, _st.textBg->c, WidgetColorRole::Background));
 	}
 	if (_st.border && !_st.borderRadius) {
-		p.fillRect(0, height() - _st.border, width(), _st.border, _st.borderFg->b);
+		p.fillRect(0, height() - _st.border, width(), _st.border,
+			ResolveWidgetColor(this, _st.borderFg->c, WidgetColorRole::Border));
 	}
 	auto errorDegree = _a_error.value(_error ? 1. : 0.);
 	auto focusedDegree = _a_focused.value(_focused ? 1. : 0.);
@@ -164,9 +165,14 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 		const auto border = anim::interpolate(_st.border, _st.borderActive, borderOpacity);
 		const auto half = border / 2.;
 		auto hq = PainterHighQualityEnabler(p);
-		const auto active = anim::color(_st.borderFgActive, _st.borderFgError, errorDegree);
-		p.setPen(QPen(anim::color(_st.borderFg->c, active, borderOpacity), border));
-		p.setBrush(anim::brush(_st.textBg, _st.textBgActive, focusedDegree));
+		const auto color = [&](const style::color &value, WidgetColorRole role) {
+			return ResolveWidgetColor(this, value->c, role);
+		};
+		const auto active = anim::color(color(_st.borderFgActive, WidgetColorRole::Border),
+			color(_st.borderFgError, WidgetColorRole::Border), errorDegree);
+		p.setPen(QPen(anim::color(color(_st.borderFg, WidgetColorRole::Border), active, borderOpacity), border));
+		p.setBrush(anim::color(color(_st.textBg, WidgetColorRole::Background),
+			color(_st.textBgActive, WidgetColorRole::Background), focusedDegree));
 		p.drawRoundedRect(QRectF(rect()).adjusted(half, half, -half, -half),
 			_st.borderRadius - half, _st.borderRadius - half);
 	}
@@ -202,8 +208,10 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 		if (style::RightToLeft()) r.moveLeft(width() - r.left() - r.width());
 
 		auto placeholderScale = 1. - (1. - _st.placeholderScale) * placeholderShiftDegree;
-		auto placeholderFg = anim::color(_st.placeholderFg, _st.placeholderFgActive, focusedDegree);
-		placeholderFg = anim::color(placeholderFg, _st.placeholderFgError, errorDegree);
+		auto placeholderFg = anim::color(ResolveWidgetColor(this, _st.placeholderFg->c),
+			ResolveWidgetColor(this, _st.placeholderFgActive->c), focusedDegree);
+		placeholderFg = anim::color(placeholderFg,
+			ResolveWidgetColor(this, _st.placeholderFgError->c), errorDegree);
 
 		PainterHighQualityEnabler hq(p);
 		p.setPen(Qt::NoPen);
@@ -227,7 +235,8 @@ void MaskedInputField::paintEvent(QPaintEvent *e) {
 			if (style::RightToLeft()) r.moveLeft(width() - r.left() - r.width());
 
 			p.setFont(_st.placeholderFont);
-			p.setPen(anim::pen(_st.placeholderFg, _st.placeholderFgActive, focusedDegree));
+			p.setPen(anim::color(ResolveWidgetColor(this, _st.placeholderFg->c),
+				ResolveWidgetColor(this, _st.placeholderFgActive->c), focusedDegree));
 			const auto align = _st.placeholderAlign;
 			const auto textWidth = _st.placeholderFont->width(_placeholder);
 			const auto textLeft = r.left()
@@ -422,7 +431,7 @@ style::font MaskedInputField::phFont() {
 
 void MaskedInputField::placeholderAdditionalPrepare(QPainter &p) {
 	p.setFont(_st.style.font);
-	p.setPen(_st.placeholderFg);
+	p.setPen(ResolveWidgetColor(this, _st.placeholderFg->c));
 }
 
 void MaskedInputField::keyPressEvent(QKeyEvent *e) {

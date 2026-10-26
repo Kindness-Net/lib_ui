@@ -14,10 +14,10 @@
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/painter.h"
+#include "ui/style/style_widget_color.h"
 #include "ui/rect.h"
 #include "ui/qt_object_factory.h"
 #include "ui/round_rect.h"
-#include "extras/extras_ui_settings.h"
 #include "styles/palette.h"
 
 #include <QtGui/QtEvents>
@@ -682,7 +682,7 @@ void IconButton::paintEvent(QPaintEvent *e) {
 		const auto highQuality = PainterHighQualityEnabler(p);
 		p.setOpacity(overIconOpacity);
 		p.setPen(Qt::NoPen);
-		p.setBrush(_st.bgOver);
+		p.setBrush(ResolveWidgetColor(this, _st.bgOver->c, WidgetColorRole::Hover));
 		const auto radius = _st.rippleCircle
 			? (_st.rippleAreaSize / 2.)
 			: float64(st::iconButtonRadius);
@@ -1071,11 +1071,9 @@ void SettingsButton::paintBg(Painter &p, const QRect &rect, bool over) const {
 	if (!over) {
 		return;
 	}
-	// 材质下底色透明，默认悬停色改为叠加半透明色，跟随背后的材质颜色。
-	const auto standard = (_st.textBgOver.get() == st::windowBgOver.get());
 	p.fillRect(
 		rect,
-		standard ? ExtrasUiSettings::hoverOverlay() : _st.textBgOver->c);
+		ResolveWidgetColor(this, _st.textBgOver->c, WidgetColorRole::Hover));
 }
 
 void SettingsButton::paintText(Painter &p, bool over, int outerw) const {
@@ -1088,9 +1086,7 @@ void SettingsButton::paintText(Painter &p, bool over, int outerw) const {
 	}
 	p.setPen(_textColorOverride
 		? QPen(*_textColorOverride)
-		: over
-		? _st.textFgOver
-		: _st.textFg);
+		: QPen(ResolveWidgetColor(this, (over ? _st.textFgOver : _st.textFg)->c)));
 	_text.drawLeftElided(
 		p,
 		_padding.left(),

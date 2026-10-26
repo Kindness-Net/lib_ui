@@ -5,6 +5,7 @@
 // https://github.com/desktop-app/legal/blob/master/LEGAL
 //
 #include "ui/widgets/box_content_divider.h"
+#include "ui/style/style_widget_color.h"
 
 #include "styles/style_widgets.h"
 #include "styles/palette.h"
@@ -24,8 +25,9 @@ BoxContentDivider::BoxContentDivider(
 }
 
 void BoxContentDivider::paintEvent(QPaintEvent *e) {
-	// 窗口材质表面不画分组条背景，交给材质显示。
 	if (property("ExtrasWindowMaterialSurfaceActive").toBool()) {
+		QPainter(this).fillRect(e->rect(), ResolveWidgetColor(
+			this, _st.bg->c, WidgetColorRole::Border));
 		return;
 	}
 	QPainter p(this);

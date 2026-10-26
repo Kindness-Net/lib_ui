@@ -5,6 +5,7 @@
 // https://github.com/desktop-app/legal/blob/master/LEGAL
 //
 #include "ui/widgets/menu/menu_item_base.h"
+#include "ui/style/style_widget_color.h"
 
 #include "ui/widgets/menu/menu.h"
 #include "ui/effects/ripple_animation.h"
@@ -19,7 +20,11 @@ void PaintItemBackground(
 		const style::Menu &st,
 		QRect rect,
 		bool selected) {
-	p.fillRect(rect, st.itemBg);
+	const auto widget = dynamic_cast<const QWidget*>(p.device());
+	const auto color = [&](QColor normal, WidgetColorRole role) {
+		return widget ? ResolveWidgetColor(widget, normal, role) : normal;
+	};
+	p.fillRect(rect, color(st.itemBg->c, WidgetColorRole::Background));
 	if (!selected) {
 		return;
 	}
@@ -29,7 +34,7 @@ void PaintItemBackground(
 		st.itemBgRadius,
 		st.itemBgRadius);
 	auto hq = PainterHighQualityEnabler(p);
-	p.fillPath(path, st.itemBgOver);
+	p.fillPath(path, color(st.itemBgOver->c, WidgetColorRole::Hover));
 }
 
 QImage ItemRippleMask(const style::Menu &st, QSize size) {

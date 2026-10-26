@@ -5,6 +5,7 @@
 // https://github.com/desktop-app/legal/blob/master/LEGAL
 //
 #include "ui/widgets/shadow.h"
+#include "ui/style/style_widget_color.h"
 #include "ui/widgets/rp_window.h"
 
 #include "ui/image/image_prepare.h"
@@ -126,8 +127,9 @@ PlainShadow::PlainShadow(QWidget *parent, style::color color)
 }
 
 void PlainShadow::paintEvent(QPaintEvent *e) {
-	// 窗口材质表面不画分隔线。
 	if (property("ExtrasWindowMaterialSurfaceActive").toBool()) {
+		QPainter(this).fillRect(e->rect(), ResolveWidgetColor(
+			this, _color->c, WidgetColorRole::Border));
 		return;
 	}
 	const auto separator = (_color == st::shadowFg || _color == st::windowDividerFg);

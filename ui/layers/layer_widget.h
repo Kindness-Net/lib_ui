@@ -133,9 +133,9 @@ public:
 	[[nodiscard]] virtual crl::time animationDuration() const {
 		return 0;
 	}
-	// 透明菜单直接透出窗口材质，动画缓存不能叠加底下的界面。
-	[[nodiscard]] virtual bool hasWindowBackdrop() const {
-		return false;
+	// 有值时替换底下的界面，实时绘制与动画共用同一份窗口材质混色。
+	[[nodiscard]] virtual std::optional<QColor> windowBackdropColor() const {
+		return std::nullopt;
 	}
 	// 图层自身的圆角，背景层按它生成阴影。
 	[[nodiscard]] virtual int cornerRadius() const;

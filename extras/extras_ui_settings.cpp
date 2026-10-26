@@ -14,7 +14,6 @@ QString monoFont;
 double wideMultiplier = 1.0;
 bool materialSwitches;
 int avatarCorners = kMaxAvatarCorners;
-QColor (*hoverOverlayResolver)() = nullptr;
 QString (*dialogTitleResolver)() = nullptr;
 
 void setMonoFont(QString newFont) {
@@ -55,16 +54,6 @@ void setAvatarCorners(int val) {
 
 int getAvatarCorners() {
 	return avatarCorners;
-}
-
-void setHoverOverlay(QColor (*resolver)()) {
-	hoverOverlayResolver = resolver;
-}
-
-QColor hoverOverlay() {
-	Expects(hoverOverlayResolver != nullptr);
-
-	return hoverOverlayResolver();
 }
 
 void setDialogTitle(QString (*resolver)()) {

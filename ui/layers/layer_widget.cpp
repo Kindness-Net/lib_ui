@@ -166,7 +166,7 @@ public:
 		QPixmap &&mainMenuCache,
 		QPixmap &&specialLayerCache,
 		QPixmap &&layerCache,
-		bool mainMenuHasWindowBackdrop);
+		std::optional<QColor> mainMenuWindowBackdrop);
 	void removeBodyCache();
 	[[nodiscard]] bool hasBodyCache() const;
 	void refreshBodyCache(QPixmap &&bodyCache);
@@ -194,7 +194,7 @@ private:
 
 	QPixmap _bodyCache;
 	QPixmap _mainMenuCache;
-	bool _mainMenuHasWindowBackdrop = false;
+	std::optional<QColor> _mainMenuWindowBackdrop;
 	int _mainMenuCacheWidth = 0;
 	QPixmap _specialLayerCache;
 	QPixmap _layerCache;
@@ -227,10 +227,10 @@ void LayerStackWidget::BackgroundWidget::setCacheImages(
 		QPixmap &&mainMenuCache,
 		QPixmap &&specialLayerCache,
 		QPixmap &&layerCache,
-		bool mainMenuHasWindowBackdrop) {
+		std::optional<QColor> mainMenuWindowBackdrop) {
 	_bodyCache = std::move(bodyCache);
 	_mainMenuCache = std::move(mainMenuCache);
-	_mainMenuHasWindowBackdrop = mainMenuHasWindowBackdrop;
+	_mainMenuWindowBackdrop = mainMenuWindowBackdrop;
 	_specialLayerCache = std::move(specialLayerCache);
 	_layerCache = std::move(layerCache);
 	_specialLayerCacheBox = _specialLayerBox;
@@ -491,7 +491,7 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	}
 	if (!_mainMenuCache.isNull() && mainMenuRight > 0) {
 		p.setOpacity(1.);
-		if (_mainMenuHasWindowBackdrop) {
+		if (_mainMenuWindowBackdrop) {
 			const auto radius = st::boxRadius;
 			auto path = QPainterPath();
 			path.addRoundedRect(
@@ -504,7 +504,7 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 				radius);
 			auto hq = PainterHighQualityEnabler(p);
 			p.setCompositionMode(QPainter::CompositionMode_Source);
-			p.fillPath(path, Qt::transparent);
+			p.fillPath(path, *_mainMenuWindowBackdrop);
 			p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 		}
 		auto shownWidth = mainMenuRight + MainMenuShadowExtend();
@@ -749,10 +749,13 @@ void LayerStackWidget::setCacheImages() {
 	if (isAncestorOf(window()->focusWidget())) {
 		setFocus();
 	}
+	const auto mainMenuWindowBackdrop = _mainMenu
+		? _mainMenu->windowBackdropColor()
+		: std::nullopt;
 	if (_mainMenu) {
 		removeBodyCache();
 		// 原生材质由系统实时合成，动画期间保留主窗口的实时背景。
-		if (!_mainMenu->hasWindowBackdrop()) {
+		if (!mainMenuWindowBackdrop) {
 			hideChildren();
 			bodyCache = Ui::GrabWidget(parentWidget());
 			showChildren();
@@ -767,7 +770,7 @@ void LayerStackWidget::setCacheImages() {
 		std::move(mainMenuCache),
 		std::move(specialLayerCache),
 		std::move(layerCache),
-		_mainMenu && _mainMenu->hasWindowBackdrop());
+		mainMenuWindowBackdrop);
 }
 
 void LayerStackWidget::closeLayer(not_null<LayerWidget*> layer) {

@@ -16,6 +16,7 @@
 #include "ui/inactive_press.h"
 #include "ui/painter.h"
 #include "ui/integration.h"
+#include "ui/style/style_widget_color.h"
 #include "ui/ui_utility.h"
 #include "base/qt/qt_common_adapters.h"
 #include "styles/style_layers.h"
@@ -197,7 +198,7 @@ void LabelSimple::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	p.setFont(_st.font);
-	p.setPen(_st.textFg);
+	p.setPen(ResolveWidgetColor(this, _st.textFg->c));
 	p.drawTextLeft(0, 0, width(), _text, _textWidth);
 }
 
@@ -1085,7 +1086,7 @@ void FlatLabel::paintEvent(QPaintEvent *e) {
 	if (_textColorOverride) {
 		p.setPen(*_textColorOverride);
 	} else {
-		p.setPen(_st.textFg);
+		p.setPen(ResolveWidgetColor(this, _st.textFg->c));
 	}
 	p.setTextPalette(_st.palette);
 	const auto textWidth = _textWidth
