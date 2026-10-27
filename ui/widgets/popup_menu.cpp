@@ -1243,28 +1243,40 @@ bool PopupMenu::prepareGeometryFor(
 			: QWaylandWindow::Menu);
 	}
 #endif // Qt >= 6.11.0 && wayland
-	const auto parentWidth = _parent ? _parent->inner().width() : 0;
-	if (style::RightToLeft()) {
+	if (_parent) {
+		const auto parentInner = QRect(
+			_parent->mapToGlobal(_parent->inner().topLeft()),
+			_parent->inner().size());
+		// 菜单主体贴边；阴影可以相交，不能用阴影边距缩短展开距离。
+		const auto left = parentInner.x() - _inner.width() - _inner.x();
+		const auto right = parentInner.x() + parentInner.width() - _inner.x();
+		const auto fits = [&](int x) {
+			return r.isNull()
+				|| (x + (isWindow() ? _margins.left() : 0) >= r.x()
+					&& x + width() - (isWindow() ? _margins.right() : 0)
+						<= r.x() + r.width());
+		};
+		auto openLeft = forceRight || (!forceLeft && style::RightToLeft());
+		if (!forceLeft && !forceRight
+			&& !fits(openLeft ? left : right)
+			&& fits(openLeft ? right : left)) {
+			openLeft = !openLeft;
+		}
+		w.setX(openLeft ? left : right);
+		origin = openLeft ? Origin::TopRight : Origin::TopLeft;
+	} else if (style::RightToLeft()) {
 		const auto badLeft = !r.isNull() && w.x() - width() < r.x() - _margins.left();
 		if (forceRight || (badLeft && !forceLeft)) {
-			if (_parent && (r.isNull() || w.x() + parentWidth - _margins.left() - _margins.right() + width() - _margins.right() <= r.x() + r.width())) {
-				w.setX(w.x() + parentWidth - _margins.left() - _margins.right());
-			} else {
-				w.setX(r.x() - _margins.left());
-			}
+			w.setX(r.x() - _margins.left());
 		} else {
 			w.setX(w.x() - width());
 		}
 	} else {
 		const auto badLeft = !r.isNull() && w.x() + width() - _margins.right() > r.x() + r.width();
 		if (forceRight || (badLeft && !forceLeft)) {
-			if (_parent && (r.isNull() || w.x() - parentWidth + _margins.left() + _margins.right() - width() + _margins.right() >= r.x() - _margins.left())) {
-				w.setX(w.x() + _margins.left() + _margins.right() - parentWidth - width() + _margins.left() + _margins.right());
-			} else {
-				w.setX(p.x() - width() + std::max(
-					_additionalMenuPadding.right() - _boxShadow.extend().right(),
-					0));
-			}
+			w.setX(p.x() - width() + std::max(
+				_additionalMenuPadding.right() - _boxShadow.extend().right(),
+				0));
 			origin = PanelAnimation::Origin::TopRight;
 		}
 	}
