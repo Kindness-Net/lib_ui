@@ -205,7 +205,8 @@ void PopupMenu::init() {
 
 void PopupMenu::embedIntoParent() {
 	const auto owner = parentWidget();
-	if (!isWindow()
+	if (_systemBackdrop
+		|| !isWindow()
 		|| !owner
 		|| owner->window()->windowType() == Qt::Popup
 		|| HasNativeChildWindow(owner->window())) {
@@ -287,7 +288,10 @@ void PopupMenu::checkSubmenuShow() {
 void PopupMenu::validateCompositingSupport() {
 	const auto line = st::lineWidth;
 	const auto &additional = _additionalMenuPadding;
-	if (!_useTransparency) {
+	if (_systemBackdrop) {
+		_padding = additional;
+		_margins = _additionalMenuMargins;
+	} else if (!_useTransparency) {
 		_padding = QMargins(
 			std::max(line, additional.left()),
 			std::max(line, additional.top()),
@@ -312,7 +316,7 @@ void PopupMenu::validateCompositingSupport() {
 }
 
 void PopupMenu::updateRoundingOverlay() {
-	if (!_useTransparency || !isWindow()) {
+	if (_systemBackdrop || !_useTransparency || !isWindow()) {
 		_roundingOverlay.destroy();
 		return;
 	} else if (_roundingOverlay) {
@@ -444,6 +448,11 @@ bool PopupMenu::empty() const {
 
 void PopupMenu::paintEvent(QPaintEvent *e) {
 	QPainter p(this);
+	if (_systemBackdrop) {
+		p.setCompositionMode(QPainter::CompositionMode_Source);
+		p.fillRect(e->rect(), _systemBackdropTint);
+		p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+	}
 
 	if (_a_show.animating()) {
 		const auto opacity = _a_opacity.value(_hiding ? 0. : 1.);
@@ -487,6 +496,9 @@ void PopupMenu::paintEvent(QPaintEvent *e) {
 }
 
 void PopupMenu::paintBg(QPainter &p) {
+	if (_systemBackdrop) {
+		return;
+	}
 	if (!isWindow()) {
 		_roundRect.paint(p, _inner);
 		if (!_grabbingForPanelAnimation) {
@@ -498,6 +510,41 @@ void PopupMenu::paintBg(QPainter &p) {
 		p.fillRect(_padding.left(), height() - _padding.bottom(), width() - _padding.left(), _padding.bottom(), _st.shadowFallback);
 		p.fillRect(0, _padding.top(), _padding.left(), height() - _padding.top(), _st.shadowFallback);
 	}
+}
+
+QColor PopupMenu::contentBackground() const {
+	return _systemBackdrop ? QColor(Qt::transparent) : _st.menu.itemBg->c;
+}
+
+void PopupMenu::setSystemBackdrop(bool enabled, QColor tint) {
+	if (_systemBackdrop == enabled && _systemBackdropTint == tint) {
+		return;
+	}
+	_systemBackdropTint = tint;
+	if (_systemBackdrop == enabled) {
+		update();
+		return;
+	}
+	_systemBackdrop = enabled;
+	if (enabled && !isWindow()) {
+		const auto position = mapToGlobal(QPoint());
+		qApp->removeEventFilter(this);
+		setParent(_owner ? _owner.data() : parentWidget(),
+			Qt::FramelessWindowHint | Qt::BypassWindowManagerHint
+				| Qt::Popup | Qt::NoDropShadowWindowHint);
+		setAttribute(Qt::WA_TranslucentBackground);
+		setAttribute(Qt::WA_NoSystemBackground);
+		_scroll->setGraphicsEffect(nullptr);
+		move(position);
+	}
+	_menu->setAttribute(Qt::WA_OpaquePaintEvent, !enabled && isWindow()
+		&& _st.menu.itemBg->c.alpha() == 255);
+	if (_stashedContent) {
+		_stashedContent->menu->setAttribute(Qt::WA_OpaquePaintEvent,
+			_menu->testAttribute(Qt::WA_OpaquePaintEvent));
+	}
+	validateCompositingSupport();
+	update();
 }
 
 void PopupMenu::handleActivated(const Menu::CallbackData &data) {
@@ -927,7 +974,9 @@ void PopupMenu::prepareCache() {
 		_showStateChanges.fire({});
 	}
 	showChildren();
-	_cache = GrabWidget(this);
+	_cache = _systemBackdrop
+		? Ui::PixmapFromImage(grabForPanelAnimation())
+		: GrabWidget(this);
 	_showAnimation = base::take(showAnimationData);
 	_a_show = base::take(showAnimation);
 	if (_a_show.animating()) {
@@ -995,7 +1044,7 @@ void PopupMenu::startShowAnimation() {
 		const auto pixelRatio = style::DevicePixelRatio();
 		_showAnimation = std::make_unique<PanelAnimation>(_st.animation, _origin);
 		_showAnimation->setFinalImage(std::move(cache), QRect(_inner.topLeft() * pixelRatio, _inner.size() * pixelRatio), _st.radius);
-		if (_useTransparency) {
+		if (_useTransparency && !_systemBackdrop) {
 			_showAnimation->setCornerMasks(Images::CornersMask(_st.radius));
 		} else {
 			_showAnimation->setSkipShadow(true);
@@ -1047,7 +1096,7 @@ QImage PopupMenu::grabForPanelAnimation() {
 	{
 		QPainter p(&result);
 		_grabbingForPanelAnimation = true;
-		p.fillRect(_inner, _st.menu.itemBg);
+		p.fillRect(_inner, contentBackground());
 		for (const auto child : children()) {
 			if (const auto widget = qobject_cast<QWidget*>(child)) {
 				// Submenus are windows of their own, they are not a part
@@ -1161,6 +1210,7 @@ bool PopupMenu::prepareGeometryFor(
 	}
 	const auto screen = QGuiApplication::screenAt(p);
 
+	Integration::Instance().preparePopupMenu(this);
 	embedIntoParent();
 	if (isWindow()) {
 		createWinId();
@@ -1371,7 +1421,7 @@ void PopupMenu::finishSwitchAnimation() {
 }
 
 void PopupMenu::setupMenuWidget() {
-	if (_scroll->graphicsEffect()) {
+	if (_systemBackdrop || _scroll->graphicsEffect()) {
 		_menu->setAttribute(Qt::WA_OpaquePaintEvent, false);
 	}
 	const auto paddingWrap = static_cast<PaddingWrap<Menu::Menu>*>(
@@ -1393,10 +1443,10 @@ void PopupMenu::setupMenuWidget() {
 			_st.scrollPadding.bottom()));
 		auto p = QPainter(paddingWrap);
 		if (!top.isEmpty()) {
-			p.fillRect(top, _st.menu.itemBg);
+			p.fillRect(top, contentBackground());
 		}
 		if (!bottom.isEmpty()) {
-			p.fillRect(bottom, _st.menu.itemBg);
+			p.fillRect(bottom, contentBackground());
 		}
 	}, paddingWrap->lifetime());
 
@@ -1595,7 +1645,7 @@ void PopupMenu::swapStashed(SwitchDirection direction) {
 			return;
 		}
 		auto p = QPainter(raw->overlay.data());
-		p.fillRect(raw->overlay->rect(), _st.menu.itemBg);
+		p.fillRect(raw->overlay->rect(), contentBackground());
 
 		const auto progress = raw->animation.value(1.);
 		const auto dir = (raw->direction == SwitchDirection::LeftToRight)

@@ -5,6 +5,7 @@
 // https://github.com/desktop-app/legal/blob/master/LEGAL
 //
 #include "ui/widgets/menu/menu_separator.h"
+#include "ui/style/style_widget_color.h"
 
 #include "ui/painter.h"
 #include "ui/widgets/rp_window.h"
@@ -29,7 +30,8 @@ Separator::Separator(
 	) | rpl::on_next([=] {
 		Painter p(this);
 
-		p.fillRect(0, 0, width(), _height, _bg);
+		p.fillRect(0, 0, width(), _height, ResolveWidgetColor(
+			this, _bg->c, WidgetColorRole::Background));
 		p.fillRect(
 			_padding.left(),
 			_padding.top(),

@@ -114,6 +114,9 @@ public:
 	[[nodiscard]] QMargins preparedPadding() const;
 	[[nodiscard]] QMargins preparedMargins() const;
 	[[nodiscard]] bool useTransparency() const;
+	// 宿主启用原生材质时保留独立窗口，背景混色只在窗口根部绘制。
+	void setSystemBackdrop(bool enabled, QColor tint = Qt::transparent);
+	[[nodiscard]] bool systemBackdrop() const { return _systemBackdrop; }
 
 	[[nodiscard]] int scrollTop() const;
 	[[nodiscard]] rpl::producer<int> scrollTopValue() const;
@@ -160,6 +163,7 @@ private:
 	struct SubmenuAim;
 
 	void paintBg(QPainter &p);
+	[[nodiscard]] QColor contentBackground() const;
 	void hideFast();
 	void setOrigin(PanelAnimation::Origin origin);
 	void showAnimated(PanelAnimation::Origin origin);
@@ -259,6 +263,8 @@ private:
 	rpl::variable<AnimatePhase> _animatePhase = AnimatePhase::Hidden;
 
 	bool _useTransparency = true;
+	bool _systemBackdrop = false;
+	QColor _systemBackdropTint = Qt::transparent;
 	bool _hiding = false;
 	QPixmap _cache;
 	Animations::Simple _a_opacity;
