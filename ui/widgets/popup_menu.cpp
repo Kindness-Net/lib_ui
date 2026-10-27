@@ -455,8 +455,11 @@ void PopupMenu::paintEvent(QPaintEvent *e) {
 	}
 
 	if (_a_show.animating()) {
-		const auto opacity = _a_opacity.value(_hiding ? 0. : 1.);
 		const auto progress = _a_show.value(1.);
+		if (_systemBackdrop) {
+			return;
+		}
+		const auto opacity = _a_opacity.value(_hiding ? 0. : 1.);
 		const auto state = (opacity > 0.)
 			? _showAnimation->paintFrame(p, 0, 0, width(), progress, opacity)
 			: PanelAnimation::PaintState();
@@ -470,20 +473,30 @@ void PopupMenu::paintEvent(QPaintEvent *e) {
 		});
 	} else if (_a_opacity.animating()) {
 		if (_showAnimation) {
+			PostponeCall(this, [=] { _systemShowOverlay.destroy(); });
 			_showAnimation.reset();
 			_showStateChanges.fire({
 				.toggling = true,
 			});
 		}
-		p.setOpacity(_a_opacity.value(0.));
+		if (!_systemBackdrop) {
+			p.setOpacity(_a_opacity.value(0.));
+		}
 		p.drawPixmap(0, 0, _cache);
 	} else if (_hiding || isHidden()) {
 		hideFinished();
 	} else if (_showAnimation) {
-		_showAnimation->paintFrame(p, 0, 0, width(), 1., 1.);
+		if (_systemBackdrop) {
+			p.drawPixmap(0, 0, _cache);
+		} else {
+			_showAnimation->paintFrame(p, 0, 0, width(), 1., 1.);
+		}
 		_showAnimation.reset();
 		_showStateChanges.fire({});
 		PostponeCall(this, [=] {
+			// 缓存画面提交后再移除文字层，交接时不露出只有材质的空帧。
+			_systemShowOverlay.destroy();
+			_systemShowGeometry = QRect();
 			showChildren();
 			_animatePhase = AnimatePhase::Shown;
 			if (isWindow()) {
@@ -536,6 +549,10 @@ void PopupMenu::setSystemBackdrop(bool enabled, QColor tint) {
 		setAttribute(Qt::WA_NoSystemBackground);
 		_scroll->setGraphicsEffect(nullptr);
 		move(position);
+	}
+	if (::Platform::IsWindows()) {
+		// Qt 的弹出菜单已捕获键盘输入，有宿主时不转移系统激活窗口。
+		setWindowFlag(Qt::WindowDoesNotAcceptFocus, enabled && parentWidget());
 	}
 	_menu->setAttribute(Qt::WA_OpaquePaintEvent, !enabled && isWindow()
 		&& _st.menu.itemBg->c.alpha() == 255);
@@ -897,7 +914,9 @@ void PopupMenu::childHiding(PopupMenu *child) {
 	if (!_hiding && !isHidden()) {
 		raise();
 		if (isWindow()) {
-			activateWindow();
+			if (!windowFlags().testFlag(Qt::WindowDoesNotAcceptFocus)) {
+				activateWindow();
+			}
 		} else {
 			setFocus(Qt::PopupFocusReason);
 		}
@@ -932,11 +951,6 @@ void PopupMenu::setAdditionalMenuPadding(
 	}
 }
 
-void PopupMenu::showAnimated(PanelAnimation::Origin origin) {
-	setOrigin(origin);
-	showStarted();
-}
-
 void PopupMenu::hideAnimated() {
 	if (isHidden() || _hiding) {
 		return;
@@ -945,7 +959,7 @@ void PopupMenu::hideAnimated() {
 		_keepingDelayedActivationPaused = true;
 		KeepDelayedActivationPaused(true);
 	}
-	startOpacityAnimation(true);
+	startHideAnimation();
 }
 
 void PopupMenu::hideFast() {
@@ -958,19 +972,39 @@ void PopupMenu::hideFast() {
 void PopupMenu::hideFinished() {
 	_hiding = false;
 	_a_show.stop();
+	_systemShowOverlay.destroy();
 	_cache = QPixmap();
 	_animatePhase = AnimatePhase::Hidden;
 	if (!isHidden()) {
 		hide();
 	}
+	if (!_systemShowGeometry.isEmpty()) {
+		const auto geometry = base::take(_systemShowGeometry);
+		setFixedSize(geometry.size());
+		move(geometry.topLeft());
+		_showAnimation.reset();
+	}
+	if (_systemBackdrop) {
+		setWindowOpacity(1.);
+		finishSwitchAnimation();
+	}
 }
 
 void PopupMenu::prepareCache() {
 	if (_a_opacity.animating()) return;
+	if (_systemBackdrop && _showAnimation) {
+		return;
+	}
+	if (_systemBackdrop && _switchState) {
+		// 收起时冻结当前换页画面，窗口大小和内容缓存保持一致。
+		_cache = Ui::PixmapFromImage(grabForPanelAnimation());
+		_switchState->animation.stop();
+		return;
+	}
 
 	auto showAnimation = base::take(_a_show);
 	auto showAnimationData = base::take(_showAnimation);
-	if (showAnimation.animating()) {
+	if (showAnimation.animating() || _systemBackdrop) {
 		_showStateChanges.fire({});
 	}
 	showChildren();
@@ -984,49 +1018,33 @@ void PopupMenu::prepareCache() {
 	}
 }
 
-void PopupMenu::startOpacityAnimation(bool hiding) {
+void PopupMenu::startHideAnimation() {
 	if (!_useTransparency) {
 		_a_opacity.stop();
-		_hiding = hiding;
-		if (_hiding) {
-			InvokeQueued(this, [=] {
-				if (_hiding) {
-					hideFinished();
-				}
-			});
-		} else {
-			update();
-		}
+		_hiding = true;
+		InvokeQueued(this, [=] {
+			if (_hiding) {
+				hideFinished();
+			}
+		});
 		return;
 	}
 	_hiding = false;
 	prepareCache();
-	_hiding = hiding;
-	_animatePhase = hiding
-		? AnimatePhase::StartHide
-		: AnimatePhase::StartShow;
+	_hiding = true;
+	_animatePhase = AnimatePhase::StartHide;
+	if (_systemBackdrop) {
+		_showStateChanges.fire({ .toggling = true });
+	}
 	hideChildren();
 	_a_opacity.start(
 		[=] { opacityAnimationCallback(); },
-		_hiding ? 1. : 0.,
-		_hiding ? 0. : 1.,
+		1.,
+		0.,
 		_st.duration);
-}
-
-void PopupMenu::showStarted() {
-	if (isHidden()) {
-		// Same as in showPrepared(): show() can end with this menu gone.
-		const auto weak = base::make_weak(this);
-		show();
-		if (weak) {
-			startShowAnimation();
-			Integration::Instance().preparePopupMenu(this);
-		}
-		return;
-	} else if (!_hiding) {
-		return;
+	if (_systemBackdrop) {
+		setWindowOpacity(_a_opacity.value(0.));
 	}
-	startOpacityAnimation(false);
 }
 
 void PopupMenu::startShowAnimation() {
@@ -1037,17 +1055,43 @@ void PopupMenu::startShowAnimation() {
 	}
 	if (!_a_show.animating()) {
 		auto opacityAnimation = base::take(_a_opacity);
+		if (_systemBackdrop) {
+			_systemShowGeometry = geometry();
+			_showStateChanges.fire({});
+		}
 		showChildren();
 		auto cache = grabForPanelAnimation();
+		if (_systemBackdrop) {
+			_cache = Ui::PixmapFromImage(QImage(cache));
+			// 文字层固定在最终位置，避免原生窗口移动先于纹理提交造成错位。
+			_systemShowOverlay.create(this);
+			_systemShowOverlay->setWindowFlags(Qt::Tool
+				| Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint
+				| Qt::WindowDoesNotAcceptFocus | Qt::WindowTransparentForInput);
+			_systemShowOverlay->setAttribute(Qt::WA_TranslucentBackground);
+			_systemShowOverlay->setAttribute(Qt::WA_ShowWithoutActivating);
+			_systemShowOverlay->setFixedSize(_systemShowGeometry.size());
+			_systemShowOverlay->move(_systemShowGeometry.topLeft());
+			Integration::Instance().preparePopupMenu(_systemShowOverlay.data());
+			_systemShowOverlay->paintRequest(
+			) | rpl::on_next([=](QRect) {
+				auto p = QPainter(_systemShowOverlay);
+				const auto opacity = _showAnimation
+					? _showAnimation->computeState(_a_show.value(1.), 1.).opacity
+					: 1.;
+				p.setClipRect(QRect(pos() - _systemShowGeometry.topLeft(), size()));
+				p.setOpacity(opacity * _a_opacity.value(_hiding ? 0. : 1.));
+				p.drawPixmap(0, 0, _cache);
+			}, _systemShowOverlay->lifetime());
+		}
 		_a_opacity = base::take(opacityAnimation);
 
 		const auto pixelRatio = style::DevicePixelRatio();
 		_showAnimation = std::make_unique<PanelAnimation>(_st.animation, _origin);
+		_showAnimation->setSkipShadow(_systemBackdrop);
 		_showAnimation->setFinalImage(std::move(cache), QRect(_inner.topLeft() * pixelRatio, _inner.size() * pixelRatio), _st.radius);
-		if (_useTransparency && !_systemBackdrop) {
+		if (!_systemBackdrop) {
 			_showAnimation->setCornerMasks(Images::CornersMask(_st.radius));
-		} else {
-			_showAnimation->setSkipShadow(true);
 		}
 		_showAnimation->start();
 	}
@@ -1055,9 +1099,14 @@ void PopupMenu::startShowAnimation() {
 	hideChildren();
 	_a_show.start([this] { showAnimationCallback(); }, 0., 1., _st.showDuration);
 	fireCurrentShowState();
+	updateSystemBackdropGeometry();
 }
 
 void PopupMenu::fireCurrentShowState() {
+	if (_systemBackdrop) {
+		_showStateChanges.fire({ .toggling = true });
+		return;
+	}
 	const auto state = _showAnimation->computeState(
 		_a_show.value(1.),
 		_a_opacity.value(1.));
@@ -1072,19 +1121,52 @@ void PopupMenu::fireCurrentShowState() {
 }
 
 void PopupMenu::opacityAnimationCallback() {
+	if (_systemBackdrop) {
+		// 整窗淡出包含材质和阴影，内容不再单独乘一次透明度。
+		setWindowOpacity(_a_opacity.value(0.));
+		if (_systemShowOverlay) {
+			_systemShowOverlay->update();
+		}
+	}
 	update();
 	if (!_a_opacity.animating()) {
-		if (_hiding) {
-			hideFinished();
-		} else {
-			showChildren();
-			_animatePhase = AnimatePhase::Shown;
-		}
+		hideFinished();
 	}
 }
 
 void PopupMenu::showAnimationCallback() {
+	updateSystemBackdropGeometry();
 	update();
+	if (_systemShowOverlay && isVisible()) {
+		_systemShowOverlay->show();
+		_systemShowOverlay->update();
+	}
+}
+
+void PopupMenu::updateSystemBackdropGeometry() {
+	using Origin = PanelAnimation::Origin;
+
+	if (!_systemBackdrop || !_showAnimation) {
+		return;
+	}
+	// 窗口位置与尺寸一起更新，原生外框跟随展开区域。
+	const auto state = _showAnimation->computeState(_a_show.value(1.), 1.);
+	const auto size = QSize(
+		_padding.left() + state.width + _padding.right(),
+		_padding.top() + state.height + _padding.bottom());
+	const auto right = (_origin == Origin::TopRight || _origin == Origin::BottomRight);
+	const auto bottom = (_origin == Origin::BottomLeft || _origin == Origin::BottomRight);
+	const auto position = _systemShowGeometry.topLeft() + QPoint(
+		right ? _systemShowGeometry.width() - size.width() : 0,
+		bottom ? _systemShowGeometry.height() - size.height() : 0);
+	setMinimumSize(0, 0);
+	setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+	setGeometry(QRect(position, size));
+	// QWidget 隐藏时会延迟同步原生坐标，首帧绘制前必须使两者一致。
+	const auto handle = windowHandle();
+	if (handle->geometry() != geometry()) {
+		handle->setGeometry(geometry());
+	}
 }
 
 QImage PopupMenu::grabForPanelAnimation() {
@@ -1102,7 +1184,7 @@ QImage PopupMenu::grabForPanelAnimation() {
 				// Submenus are windows of their own, they are not a part
 				// of what this menu paints, and their pos() is meaningless
 				// in our coordinates.
-				if (!widget->isWindow()) {
+				if (!widget->isWindow() && !widget->isHidden()) {
 					RenderWidget(p, widget, widget->pos());
 				}
 			}
@@ -1389,7 +1471,9 @@ void PopupMenu::showPrepared(TriggeredSource source) {
 	raise();
 	if (isWindow()) {
 		Platform::ShowOverAll(this);
-		activateWindow();
+		if (!windowFlags().testFlag(Qt::WindowDoesNotAcceptFocus)) {
+			activateWindow();
+		}
 	} else {
 		setFocus(Qt::PopupFocusReason);
 	}
@@ -1599,19 +1683,13 @@ void PopupMenu::swapStashed(SwitchDirection direction) {
 
 	_scroll->hide();
 
-	// Resize popup to max(old, new) height once upfront instead of
-	// calling setFixedSize/resize on every frame. Per-frame resizing of
-	// translucent top-level windows can cause compositor jitter on macOS.
-	// The visual height transition is achieved by animating _inner and
-	// clipping the overlay; the extra transparent area is invisible.
-	const auto maxScrollHeight = std::max(oldScrollHeight, newScrollHeight);
-	{
-		const auto maxSize = QSize(
-			_padding.left() + scrollWidth + _padding.right(),
-			_padding.top() + maxScrollHeight + _padding.bottom());
-		setFixedSize(maxSize);
-		resize(maxSize);
-	}
+	// 自绘背景预留透明空间，避免每帧调整系统窗口；原生材质随实际高度变化。
+	const auto initialHeight = _systemBackdrop
+		? oldScrollHeight
+		: std::max(oldScrollHeight, newScrollHeight);
+	setFixedSize(
+		_padding.left() + scrollWidth + _padding.right(),
+		_padding.top() + initialHeight + _padding.bottom());
 
 	_switchState->baseY = y();
 	_switchState->positionShift = computePositionShift(newScrollHeight);
@@ -1679,6 +1757,11 @@ void PopupMenu::startSwitchAnimation(
 			raw->fromScrollHeight,
 			raw->toScrollHeight,
 			progress);
+		if (_systemBackdrop) {
+			setFixedSize(
+				width(),
+				_padding.top() + h + _padding.bottom());
+		}
 
 		if (raw->positionShift) {
 			const auto shift = anim::interpolate(

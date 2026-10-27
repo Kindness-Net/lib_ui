@@ -166,12 +166,12 @@ private:
 	[[nodiscard]] QColor contentBackground() const;
 	void hideFast();
 	void setOrigin(PanelAnimation::Origin origin);
-	void showAnimated(PanelAnimation::Origin origin);
 	void hideAnimated();
 
 	QImage grabForPanelAnimation();
 	void startShowAnimation();
-	void startOpacityAnimation(bool hiding);
+	void updateSystemBackdropGeometry();
+	void startHideAnimation();
 	void prepareCache();
 	void childHiding(PopupMenu *child);
 
@@ -185,7 +185,6 @@ private:
 	void finishSwitchAnimation();
 
 	void hideFinished();
-	void showStarted();
 	void fireCurrentShowState();
 
 	using TriggeredSource = Menu::TriggeredSource;
@@ -258,6 +257,8 @@ private:
 	PanelAnimation::Origin _origin = PanelAnimation::Origin::TopLeft;
 	std::optional<PanelAnimation::Origin> _forcedOrigin;
 	std::unique_ptr<PanelAnimation> _showAnimation;
+	QRect _systemShowGeometry;
+	object_ptr<RpWidget> _systemShowOverlay = { nullptr };
 	Animations::Simple _a_show;
 	rpl::event_stream<ShowState> _showStateChanges;
 	rpl::variable<AnimatePhase> _animatePhase = AnimatePhase::Hidden;
