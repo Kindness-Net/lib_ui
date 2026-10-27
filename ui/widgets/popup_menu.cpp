@@ -30,6 +30,10 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGraphicsEffect>
 
+#ifdef _DEBUG
+#include "base/debug_log.h"
+#endif // _DEBUG
+
 #ifndef DESKTOP_APP_DISABLE_PRIVATE_QT_API
 #include <qpa/qplatformwindow_p.h>
 #endif // !DESKTOP_APP_DISABLE_PRIVATE_QT_API
@@ -38,6 +42,21 @@ namespace Ui {
 namespace {
 
 constexpr auto kSubmenuAimDelay = crl::time(300);
+
+#ifdef _DEBUG
+void TraceMenu(not_null<QWidget*> widget, const char *phase) {
+	if (!qEnvironmentVariableIsSet("ASTRAGRAM_TRACE_POPUP")) {
+		return;
+	}
+	const auto window = widget->windowHandle();
+	const auto geometry = widget->geometry();
+	LOG(("PopupTrace: t=%1 id=%2 phase=%3 visible=%4 exposed=%5 rect=%6,%7,%8,%9 opacity=%10")
+		.arg(crl::now()).arg(quintptr(widget.get()), 0, 16)
+		.arg(phase).arg(widget->isVisible()).arg(window && window->isExposed())
+		.arg(geometry.x()).arg(geometry.y()).arg(geometry.width()).arg(geometry.height())
+		.arg(widget->windowOpacity()));
+}
+#endif // _DEBUG
 
 void ConstrainEmbeddedMenu(not_null<PopupMenu*> menu) {
 	if (menu->isWindow()) {
@@ -487,6 +506,9 @@ bool PopupMenu::empty() const {
 }
 
 void PopupMenu::paintEvent(QPaintEvent *e) {
+#ifdef _DEBUG
+	TraceMenu(this, "paint");
+#endif // _DEBUG
 	QPainter p(this);
 	if (_systemBackdrop) {
 		p.setCompositionMode(QPainter::CompositionMode_Source);
@@ -1083,7 +1105,7 @@ void PopupMenu::startHideAnimation() {
 	hideChildren();
 	_a_opacity.start(
 		[=] { opacityAnimationCallback(); },
-		1.,
+		_systemBackdrop ? windowOpacity() : 1.,
 		0.,
 		_st.duration);
 	if (_systemBackdrop) {
@@ -1139,6 +1161,9 @@ void PopupMenu::prepareShowAnimation() {
 }
 
 void PopupMenu::startShowAnimation() {
+#ifdef _DEBUG
+	TraceMenu(this, "animation-prepare");
+#endif // _DEBUG
 	if (!_useTransparency) {
 		_a_show.stop();
 		update();
@@ -1163,8 +1188,11 @@ void PopupMenu::startShowAnimation() {
 			Integration::Instance().preparePopupMenu(_systemShowOverlay.data());
 			_systemShowOverlay->paintRequest(
 			) | rpl::on_next([=](QRect) {
+#ifdef _DEBUG
+				TraceMenu(_systemShowOverlay.data(), "overlay-paint");
+#endif // _DEBUG
 				auto p = QPainter(_systemShowOverlay);
-				const auto opacity = _showAnimation
+				const auto opacity = (_showAnimation && !_hiding)
 					? _showAnimation->computeState(_a_show.value(1.), 1.).opacity
 					: 1.;
 				p.setClipRect(QRect(pos() - _systemShowGeometry.topLeft(), size()));
@@ -1178,6 +1206,12 @@ void PopupMenu::startShowAnimation() {
 	_a_show.start([this] { showAnimationCallback(); }, 0., 1., _st.showDuration);
 	fireCurrentShowState();
 	updateSystemBackdropGeometry();
+	if (_systemShowOverlay) {
+		setWindowOpacity(_showAnimation->computeState(_a_show.value(1.), 1.).opacity);
+		// 首次显示前准备文字层，避免首帧临时分配绘制缓冲。
+		_systemShowOverlay->createWinId();
+		ForceFullRepaintSync(_systemShowOverlay.data());
+	}
 }
 
 void PopupMenu::fireCurrentShowState() {
@@ -1214,10 +1248,27 @@ void PopupMenu::opacityAnimationCallback() {
 
 void PopupMenu::showAnimationCallback() {
 	updateSystemBackdropGeometry();
-	update();
+	const auto opacity = (_systemBackdrop && _showAnimation)
+		? _showAnimation->computeState(_a_show.value(1.), 1.).opacity
+		: 1.;
+	if (_systemBackdrop) {
+		ForceFullRepaintSync(this);
+#ifdef _DEBUG
+		TraceMenu(this, "frame-submitted");
+#endif // _DEBUG
+	} else {
+		update();
+	}
 	if (_systemShowOverlay && isVisible()) {
 		_systemShowOverlay->show();
-		_systemShowOverlay->update();
+		ForceFullRepaintSync(_systemShowOverlay.data());
+	}
+	if (_systemBackdrop && !_hiding) {
+		// 原生外框与文字都提交后再提高透明度，避免新尺寸露出旧画面。
+		setWindowOpacity(opacity);
+#ifdef _DEBUG
+		TraceMenu(this, "frame-visible");
+#endif // _DEBUG
 	}
 }
 
@@ -1526,6 +1577,9 @@ bool PopupMenu::prepareGeometryFor(
 }
 
 void PopupMenu::showPrepared(TriggeredSource source) {
+#ifdef _DEBUG
+	TraceMenu(this, "show-prepare");
+#endif // _DEBUG
 	if (!isWindow() && !_parent) {
 		if (auto previous = Active(); previous && previous != this) {
 			while (previous->_parent) {
@@ -1546,10 +1600,16 @@ void PopupMenu::showPrepared(TriggeredSource source) {
 	// show() reaches the platform window deeply enough for the owner to destroy
 	// this menu, so nothing below may touch it without checking its lifetime.
 	const auto weak = base::make_weak(this);
+#ifdef _DEBUG
+	TraceMenu(this, "show-before");
+#endif // _DEBUG
 	show();
 	if (!weak) {
 		return;
 	}
+#ifdef _DEBUG
+	TraceMenu(this, "show-after");
+#endif // _DEBUG
 	raise();
 	if (isWindow()) {
 		Platform::ShowOverAll(this);
