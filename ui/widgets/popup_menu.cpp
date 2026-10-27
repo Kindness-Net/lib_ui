@@ -29,7 +29,10 @@
 #include <QtGui/QWindow>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGraphicsEffect>
+
+#ifndef DESKTOP_APP_DISABLE_PRIVATE_QT_API
 #include <qpa/qplatformwindow_p.h>
+#endif // !DESKTOP_APP_DISABLE_PRIVATE_QT_API
 
 namespace Ui {
 namespace {
@@ -97,6 +100,43 @@ private:
 	const auto negative = (first < 0) || (second < 0) || (third < 0);
 	const auto positive = (first > 0) || (second > 0) || (third > 0);
 	return !negative || !positive;
+}
+
+struct ChildState {
+	QPointer<QWidget> widget;
+	bool hidden = false;
+	bool transparentForMouse = false;
+};
+
+[[nodiscard]] std::vector<ChildState> MakeChildrenTransparentForMouse(
+		not_null<QWidget*> parent) {
+	auto result = std::vector<ChildState>();
+	for (const auto child : parent->children()) {
+		const auto widget = qobject_cast<QWidget*>(child);
+		if (widget && !widget->isWindow()) {
+			result.push_back({
+				.widget = widget,
+				.hidden = widget->isHidden(),
+				.transparentForMouse = widget->testAttribute(
+					Qt::WA_TransparentForMouseEvents),
+			});
+			widget->setAttribute(Qt::WA_TransparentForMouseEvents);
+		}
+	}
+	return result;
+}
+
+void RestoreChildren(const std::vector<ChildState> &states) {
+	for (const auto &state : states) {
+		if (const auto widget = state.widget.data()) {
+			if (widget->isHidden() != state.hidden) {
+				widget->setVisible(!state.hidden);
+			}
+			widget->setAttribute(
+				Qt::WA_TransparentForMouseEvents,
+				state.transparentForMouse);
+		}
+	}
 }
 
 } // namespace
@@ -880,6 +920,10 @@ bool PopupMenu::eventFilter(QObject *o, QEvent *e) {
 	return false;
 }
 
+bool PopupMenu::focusNextPrevChild(bool next) {
+	return !_refreshingAnimationCache && RpWidget::focusNextPrevChild(next);
+}
+
 void PopupMenu::hideMenu(bool fast) {
 	if (isHidden() || (_hiding && !fast)) {
 		return;
@@ -1047,6 +1091,53 @@ void PopupMenu::startHideAnimation() {
 	}
 }
 
+void PopupMenu::refreshAnimationCache() {
+	if (isHidden()) {
+		return;
+	}
+	if (!_showAnimation && !_a_opacity.animating()) {
+		update();
+		return;
+	}
+	_refreshingAnimationCache = true;
+	const auto children = MakeChildrenTransparentForMouse(this);
+	if (_showAnimation) {
+		prepareShowAnimation();
+	}
+	if (_a_opacity.animating()) {
+		auto opacityAnimation = base::take(_a_opacity);
+		const auto hiding = base::take(_hiding);
+		prepareCache();
+		_hiding = hiding;
+		_a_opacity = base::take(opacityAnimation);
+	}
+	RestoreChildren(children);
+	_refreshingAnimationCache = false;
+	if (_systemShowOverlay) {
+		_systemShowOverlay->update();
+	}
+	update();
+}
+
+void PopupMenu::prepareShowAnimation() {
+	auto opacityAnimation = base::take(_a_opacity);
+	showChildren();
+	auto cache = grabForPanelAnimation();
+	if (_systemBackdrop) {
+		_cache = Ui::PixmapFromImage(QImage(cache));
+	}
+	_a_opacity = base::take(opacityAnimation);
+
+	const auto pixelRatio = style::DevicePixelRatio();
+	_showAnimation = std::make_unique<PanelAnimation>(_st.animation, _origin);
+	_showAnimation->setSkipShadow(_systemBackdrop);
+	_showAnimation->setFinalImage(std::move(cache), QRect(_inner.topLeft() * pixelRatio, _inner.size() * pixelRatio), _st.radius);
+	if (_useTransparency && !_systemBackdrop) {
+		_showAnimation->setCornerMasks(Images::CornersMask(_st.radius));
+	}
+	_showAnimation->start();
+}
+
 void PopupMenu::startShowAnimation() {
 	if (!_useTransparency) {
 		_a_show.stop();
@@ -1054,15 +1145,12 @@ void PopupMenu::startShowAnimation() {
 		return;
 	}
 	if (!_a_show.animating()) {
-		auto opacityAnimation = base::take(_a_opacity);
 		if (_systemBackdrop) {
 			_systemShowGeometry = geometry();
 			_showStateChanges.fire({});
 		}
-		showChildren();
-		auto cache = grabForPanelAnimation();
+		prepareShowAnimation();
 		if (_systemBackdrop) {
-			_cache = Ui::PixmapFromImage(QImage(cache));
 			// 文字层固定在最终位置，避免原生窗口移动先于纹理提交造成错位。
 			_systemShowOverlay.create(this);
 			_systemShowOverlay->setWindowFlags(Qt::Tool
@@ -1084,16 +1172,6 @@ void PopupMenu::startShowAnimation() {
 				p.drawPixmap(0, 0, _cache);
 			}, _systemShowOverlay->lifetime());
 		}
-		_a_opacity = base::take(opacityAnimation);
-
-		const auto pixelRatio = style::DevicePixelRatio();
-		_showAnimation = std::make_unique<PanelAnimation>(_st.animation, _origin);
-		_showAnimation->setSkipShadow(_systemBackdrop);
-		_showAnimation->setFinalImage(std::move(cache), QRect(_inner.topLeft() * pixelRatio, _inner.size() * pixelRatio), _st.radius);
-		if (!_systemBackdrop) {
-			_showAnimation->setCornerMasks(Images::CornersMask(_st.radius));
-		}
-		_showAnimation->start();
 	}
 	_animatePhase = AnimatePhase::StartShow;
 	hideChildren();
@@ -1172,7 +1250,11 @@ void PopupMenu::updateSystemBackdropGeometry() {
 QImage PopupMenu::grabForPanelAnimation() {
 	SendPendingMoveResizeEvents(this);
 	const auto pixelRatio = style::DevicePixelRatio();
-	auto result = QImage(size() * pixelRatio, QImage::Format_ARGB32_Premultiplied);
+	// 换色刷新仍采样完整内容，不能把展开中的窗口尺寸保存进缓存。
+	const auto cacheSize = _systemShowGeometry.isEmpty()
+		? size()
+		: _systemShowGeometry.size();
+	auto result = QImage(cacheSize * pixelRatio, QImage::Format_ARGB32_Premultiplied);
 	result.setDevicePixelRatio(pixelRatio);
 	result.fill(Qt::transparent);
 	{
@@ -1341,7 +1423,7 @@ bool PopupMenu::prepareGeometryFor(
 		? QRect(parentWidget()->mapToGlobal(parentWidget()->contentsRect().topLeft()),
 			parentWidget()->contentsRect().size())
 		: screen ? screen->availableGeometry() : QRect();
-#if QT_VERSION >= QT_VERSION_CHECK(6, 11, 0) && defined QT_FEATURE_wayland && QT_CONFIG(wayland)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 11, 0) && defined QT_FEATURE_wayland && QT_CONFIG(wayland) && !defined DESKTOP_APP_DISABLE_PRIVATE_QT_API
 	using namespace QNativeInterface::Private;
 	if (const auto native
 			= isWindow() ? windowHandle()->nativeInterface<QWaylandWindow>() : nullptr) {
@@ -1374,7 +1456,7 @@ bool PopupMenu::prepareGeometryFor(
 			? QWaylandWindow::SubMenu
 			: QWaylandWindow::Menu);
 	}
-#endif // Qt >= 6.11.0 && wayland
+#endif // Qt >= 6.11.0 && wayland && !DESKTOP_APP_DISABLE_PRIVATE_QT_API
 	if (_parent) {
 		const auto parentInner = QRect(
 			_parent->mapToGlobal(_parent->inner().topLeft()),

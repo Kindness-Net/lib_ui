@@ -22,6 +22,7 @@ namespace Ui {
 namespace Platform {
 class BasicWindowHelper;
 struct HitTestRequest;
+struct SystemCommandRequest;
 enum class HitTestResult;
 } // namespace Platform
 
@@ -66,6 +67,8 @@ public:
 		-> rpl::producer<Platform::HitTestResult>;
 	[[nodiscard]] auto systemButtonDown() const
 		-> rpl::producer<Platform::HitTestResult>;
+	[[nodiscard]] auto systemCommandRequests() const
+		-> rpl::producer<not_null<Platform::SystemCommandRequest*>>;
 	void overrideSystemButtonOver(Platform::HitTestResult button);
 	void overrideSystemButtonDown(Platform::HitTestResult button);
 
