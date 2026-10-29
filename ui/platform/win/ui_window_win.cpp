@@ -943,7 +943,8 @@ void WindowHelper::updateCloaking() {
 	if (!_handle) {
 		return;
 	}
-	const auto enabled = window()->isHidden() && !_isFullScreen;
+	// 全屏窗口首次显示也要等首轮绘制，不能提前取消遮蔽。
+	const auto enabled = window()->isHidden();
 	const auto flag = BOOL(enabled ? TRUE : FALSE);
 	DwmSetWindowAttribute(_handle, DWMWA_CLOAK, &flag, sizeof(flag));
 }
