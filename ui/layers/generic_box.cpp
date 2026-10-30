@@ -42,11 +42,21 @@ void GenericBox::prepare() {
 		updateDimensions();
 	}, wrap->lifetime());
 
+	const auto contentWrap = wrap.data();
 	setInnerWidget(
 		std::move(wrap),
 		_scrollSt ? *_scrollSt : st::boxScroll,
 		pinnedToTop ? pinnedToTop->height() : 0,
 		pinnedToBottom ? pinnedToBottom->height() : 0);
+	widthValue() | rpl::on_next([=](int width) {
+		if (pinnedToTop) {
+			pinnedToTop->resizeToWidth(width);
+		}
+		if (pinnedToBottom) {
+			pinnedToBottom->resizeToWidth(width);
+		}
+		contentWrap->resizeToWidth(width);
+	}, contentWrap->lifetime());
 
 	if (pinnedToBottom) {
 		rpl::combine(

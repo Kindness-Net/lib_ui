@@ -56,8 +56,7 @@ BoxLayerWidget::BoxLayerWidget(
 : LayerWidget(parent)
 , _layer(delegate)
 , _content(std::move(content))
-, _roundRect(st::boxRadius, st().bg)
-, _drawerRoundRect(st::boxDrawerRadius, st().bg) {
+, _roundRect(st::boxRadius, st().bg) {
 	_content->setParent(this);
 	setObjectName(u"dialog.shell"_q);
 
@@ -89,7 +88,7 @@ void BoxLayerWidget::setLayerType(bool layerType) {
 	_layerType = layerType;
 	updateTitlePosition();
 	if (_maxContentHeight) {
-		setDimensions(width(), _maxContentHeight);
+		setDimensions(_boxWidth, _maxContentHeight);
 	}
 }
 
@@ -119,7 +118,6 @@ const style::Box &BoxLayerWidget::st() const {
 void BoxLayerWidget::setStyle(const style::Box &st) {
 	_st = &st;
 	_roundRect.setColor(st.bg);
-	_drawerRoundRect.setColor(st.bg);
 	if (_closeButton && !_customCloseButton) {
 		createCloseButton();
 	}
@@ -148,11 +146,7 @@ const style::RoundButton &BoxLayerWidget::buttonStyle() const {
 
 auto BoxLayerWidget::buttonsLayout() const -> ButtonsLayout {
 	const auto padding = st().buttonPadding;
-	const auto parent = parentWidget();
-	const auto responsive = parent && _layer->centerWithinOuter()
-		&& _content->property("responsiveBoxWidth").toBool();
-	const auto boxWidth = !responsive ? _boxWidth : bottomAnchored()
-		? parent->width() : std::min(_boxWidth, parent->width());
+	const auto boxWidth = countBoxWidth(_boxWidth);
 	const auto regularHeight = padding.top()
 		+ st().buttonHeight
 		+ padding.bottom();
@@ -273,22 +267,20 @@ void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	const auto clip = e->rect();
-	const auto drawer = bottomAnchored();
 	const auto radius = cornerRadius();
-	const auto &roundRect = drawer ? _drawerRoundRect : _roundRect;
 	const auto paintTopRounded = !(_customCornersFilling & RectPart::FullTop)
 		&& clip.intersects(QRect(0, 0, width(), radius));
-	const auto paintBottomRounded = !drawer && !(_customCornersFilling
+	const auto paintBottomRounded = !(_customCornersFilling
 		& RectPart::FullBottom)
 		&& clip.intersects(
 			QRect(0, height() - radius, width(), radius));
 	if (paintTopRounded || paintBottomRounded) {
-		roundRect.paint(p, rect(), RectPart::None
+		_roundRect.paint(p, rect(), RectPart::None
 			| (paintTopRounded ? RectPart::FullTop : RectPart::None)
 			| (paintBottomRounded ? RectPart::FullBottom : RectPart::None));
 	}
 	const auto other = e->region().intersected(
-		QRect(0, radius, width(), height() - radius * (drawer ? 1 : 2)));
+		QRect(0, radius, width(), height() - radius * 2));
 	if (!other.isEmpty()) {
 		for (const auto &rect : other) {
 			p.fillRect(rect, st().bg);
@@ -328,27 +320,26 @@ void BoxLayerWidget::parentResized() {
 	if (!parent || !_layer->centerWithinOuter()) {
 		return;
 	}
-	if (_content->property("responsiveBoxWidth").toBool()) {
-		setDimensions(_boxWidth, _maxContentHeight);
-	}
+	setDimensions(_boxWidth, _maxContentHeight);
 	updateMaxRealHeight();
 	const auto newHeight = countRealHeight();
 	const auto parentSize = parent->size();
 	setGeometry(
 		(parentSize.width() - width()) / 2,
-		bottomAnchored()
-			? parentSize.height() - newHeight
-			: withMinimalTopSkip((parentSize.height() - newHeight) / 2),
+		withMinimalTopSkip((parentSize.height() - newHeight) / 2),
 		width(),
 		newHeight);
 	update();
 }
 
-bool BoxLayerWidget::bottomAnchored() const {
+int BoxLayerWidget::countBoxWidth(int requestedWidth) const {
 	const auto parent = parentWidget();
-	return parent
-		&& _layer->centerWithinOuter()
-		&& parent->width() < st::boxNarrowWidth;
+	if (!parent || !_layer->centerWithinOuter()) {
+		return requestedWidth;
+	}
+	const auto &margin = st().margin;
+	return std::min(requestedWidth, std::max(
+		1, parent->width() - margin.left() - margin.right()));
 }
 
 void BoxLayerWidget::updateMaxRealHeight() {
@@ -360,9 +351,8 @@ void BoxLayerWidget::updateMaxRealHeight() {
 		: parent
 		? parent->height()
 		: std::numeric_limits<int>::max() / 2;
-	const auto max = bottomAnchored()
-		? containerHeight * 92 / 100
-		: containerHeight - withMinimalTopSkip(margin.top()) - margin.bottom();
+	const auto max = containerHeight
+		- withMinimalTopSkip(margin.top()) - margin.bottom();
 	_realHeightMax = max;
 	_contentHeightMax = std::max(0, max - contentTop() - buttonsHeight());
 }
@@ -689,15 +679,9 @@ void BoxLayerWidget::showLoading(bool show) {
 void BoxLayerWidget::setDimensions(
 		int newWidth,
 		int maxHeight,
-		bool forceCenterPosition) {
+		bool) {
 	_boxWidth = newWidth;
-	if (const auto parent = parentWidget(); parent
-		&& _layer->centerWithinOuter()
-		&& _content->property("responsiveBoxWidth").toBool()) {
-		newWidth = bottomAnchored()
-			? parent->width()
-			: std::min(newWidth, parent->width());
-	}
+	newWidth = countBoxWidth(newWidth);
 	_dimensionsSet = true;
 	_maxContentHeight = maxHeight;
 	updateMaxRealHeight();
@@ -709,24 +693,9 @@ void BoxLayerWidget::setDimensions(
 		const auto parent = parentWidget();
 		if (parent && _layer->centerWithinOuter()) {
 			resize(newWidth, countRealHeight());
-			auto newGeometry = geometry();
-			auto parentHeight = parent->height();
-			const auto bottomMargin = st().margin.bottom();
-			if (bottomAnchored()) {
-				move(
-					(parent->width() - newWidth) / 2,
-					parentHeight - newGeometry.height());
-			} else if (newGeometry.top() + newGeometry.height() + bottomMargin > parentHeight
-				|| forceCenterPosition) {
-				const auto top1 = parentHeight - bottomMargin - newGeometry.height();
-				const auto top2 = (parentHeight - newGeometry.height()) / 2;
-				const auto newTop = withMinimalTopSkip(forceCenterPosition
-					? std::min(top1, top2)
-					: std::max(top1, top2));
-				if (newTop != newGeometry.top()) {
-					move(newGeometry.left(), newTop);
-				}
-			}
+			move(
+				(parent->width() - newWidth) / 2,
+				withMinimalTopSkip((parent->height() - height()) / 2));
 			parent->update(oldGeometry.united(geometry()).marginsAdded(
 				BoxLayerShadowExtend()));
 		} else {
@@ -755,15 +724,14 @@ int BoxLayerWidget::countFullHeight() const {
 }
 
 int BoxLayerWidget::cornerRadius() const {
-	return bottomAnchored() ? st::boxDrawerRadius : st::boxRadius;
+	return st::boxRadius;
 }
 
 // 内容区伸进本控件负责的圆角范围时不能整块填矩形底色，否则盖住圆角。
 void BoxLayerWidget::updateContentOpaque() {
 	const auto radius = cornerRadius();
 	const auto topRounded = !(_customCornersFilling & RectPart::FullTop);
-	const auto bottomRounded = !bottomAnchored()
-		&& !(_customCornersFilling & RectPart::FullBottom);
+	const auto bottomRounded = !(_customCornersFilling & RectPart::FullBottom);
 	_content->setAttribute(
 		Qt::WA_OpaquePaintEvent,
 		!_noContentMargin

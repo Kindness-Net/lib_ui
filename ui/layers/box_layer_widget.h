@@ -128,7 +128,7 @@ private:
 	[[nodiscard]] bool hasTitle() const;
 	[[nodiscard]] int titleHeight() const;
 	[[nodiscard]] int titleRightSkip() const;
-	[[nodiscard]] bool bottomAnchored() const;
+	[[nodiscard]] int countBoxWidth(int requestedWidth) const;
 	[[nodiscard]] ButtonsLayout buttonsLayout() const;
 	[[nodiscard]] int buttonsHeight() const;
 	[[nodiscard]] int contentTop() const;
@@ -162,7 +162,6 @@ private:
 	object_ptr<BoxContent> _content;
 
 	RoundRect _roundRect;
-	RoundRect _drawerRoundRect;
 	object_ptr<FlatLabel> _title = { nullptr };
 	Fn<TextWithEntities()> _titleFactory;
 	rpl::variable<QString> _additionalTitle;

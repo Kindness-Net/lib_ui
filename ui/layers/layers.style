@@ -38,8 +38,6 @@ Box {
 
 boxDuration: 200;
 boxRadius: 16px;
-boxDrawerRadius: 18px;
-boxNarrowWidth: 420px;
 
 boxButtonFont: font(boxFontSize semibold);
 defaultBoxButtonTextStyle: TextStyle(semiboldTextStyle) {
@@ -179,7 +177,7 @@ defaultBox: Box {
 	button: activeBoxButton;
 	buttonSecondary: defaultBoxButton;
 	buttonLeft: leftBoxButton;
-	margin: margins(0px, 10px, 0px, 10px);
+	margin: margins(10px, 10px, 10px, 10px);
 	bg: boxBg;
 	title: boxLayerTitle;
 	titleAdditionalFg: boxTitleAdditionalFg;
