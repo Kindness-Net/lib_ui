@@ -12,10 +12,13 @@
 #include "ui/style/style_widget_color.h"
 #include "base/basic_types.h"
 
+#include <QtCore/QCache>
 #include <QtCore/QMutex>
 #include <QtGui/QPainter>
 #include <QtSvg/QSvgRenderer>
 #include <QtWidgets/QWidget>
+
+#include <cmath>
 
 namespace style {
 namespace internal {
@@ -33,6 +36,74 @@ QMutex IconMasksMutex;
 
 base::flat_map<std::pair<const IconMask*, uint32>, QPixmap> iconPixmaps;
 base::flat_set<IconData*> iconData;
+
+[[nodiscard]] bool PaintScaledSvgIcon(
+		QPainter &p,
+		not_null<const IconMask*> mask,
+		QRectF rect,
+		QSize originalPixels,
+		QColor color) {
+	auto data = QByteArray::fromRawData(
+		reinterpret_cast<const char*>(mask->data()), mask->size());
+	if (!data.startsWith("SVG:")) {
+		return false;
+	}
+	if (rect.isEmpty() || p.opacity() == 0.) {
+		return true;
+	}
+	const auto transform = p.deviceTransform();
+	const auto topLeft = transform.map(rect.topLeft());
+	const auto topRight = transform.map(rect.topRight());
+	const auto bottomLeft = transform.map(rect.bottomLeft());
+	const auto bottomRight = transform.map(rect.bottomRight());
+	const auto distance = [](QPointF a, QPointF b) {
+		return std::hypot(a.x() - b.x(), a.y() - b.y());
+	};
+	const auto pixels = QSize(
+		int(std::ceil(std::max(
+			distance(topLeft, topRight), distance(bottomLeft, bottomRight)))),
+		int(std::ceil(std::max(
+			distance(topLeft, bottomLeft), distance(topRight, bottomRight)))));
+	if (pixels.isEmpty()) {
+		return true;
+	}
+	if (pixels == originalPixels) {
+		return false;
+	}
+	// 缓存按线程隔离并限制总量，覆盖动画尺寸和后台主题预览。
+	thread_local auto cache = QCache<QString, QImage>(16 * 1024);
+	const auto key = QStringLiteral("%1:%2:%3:%4:%5:%6")
+		.arg(quintptr(mask.get()), 0, 16)
+		.arg(pixels.width()).arg(pixels.height())
+		.arg(originalPixels.width()).arg(originalPixels.height())
+		.arg(color.rgba());
+	auto image = QImage();
+	if (const auto cached = cache.object(key)) {
+		image = *cached;
+	} else {
+		data = data.sliced(4);
+		if (data.startsWith("SIZE:")) {
+			data = data.sliced(13);
+		}
+		auto svg = QSvgRenderer(data);
+		Assert(svg.isValid());
+		auto rendered = QImage(pixels, QImage::Format_ARGB32_Premultiplied);
+		rendered.fill(Qt::transparent);
+		{
+			auto painter = QPainter(&rendered);
+			auto hq = PainterHighQualityEnabler(painter);
+			painter.scale(
+				pixels.width() / double(originalPixels.width()),
+				pixels.height() / double(originalPixels.height()));
+			svg.render(&painter, QRectF(QPointF(), originalPixels));
+		}
+		image = colorizeImage(rendered, color);
+		const auto cost = int((image.sizeInBytes() + 1023) / 1024);
+		cache.insert(key, new QImage(image), cost);
+	}
+	p.drawImage(rect, image);
+	return true;
+}
 
 [[nodiscard]] QImage CreateIconMask(
 		not_null<const IconMask*> mask,
@@ -220,7 +291,8 @@ void MonoIcon::paint(QPainter &p, const QPoint &pos, int outerw) const {
 	ensureColorized();
 	if (_pixmap.isNull()) {
 		p.fillRect(QRect(QPoint(partPosX, partPosY), inner()), _color);
-	} else {
+	} else if (!PaintScaledSvgIcon(p, _mask,
+			QRect(QPoint(partPosX, partPosY), inner()), _maskImage.size(), _color->c)) {
 		p.drawPixmap(partPosX, partPosY, _pixmap);
 	}
 }
@@ -238,7 +310,7 @@ void MonoIcon::fill(QPainter &p, const QRect &rect) const {
 	ensureColorized();
 	if (_pixmap.isNull()) {
 		p.fillRect(rect, _color);
-	} else {
+	} else if (!PaintScaledSvgIcon(p, _mask, rect, _maskImage.size(), _color->c)) {
 		p.drawPixmap(rect, _pixmap);
 	}
 }
@@ -258,7 +330,8 @@ void MonoIcon::paint(
 		p.fillRect(
 			QRect(QPoint(partPosX, partPosY), inner()),
 			colorOverride);
-	} else {
+	} else if (!PaintScaledSvgIcon(p, _mask,
+			QRect(QPoint(partPosX, partPosY), inner()), _maskImage.size(), colorOverride)) {
 		ensureColorizedImage(colorOverride);
 		p.drawImage(partPosX, partPosY, _colorizedImage);
 	}
@@ -273,7 +346,7 @@ void MonoIcon::fill(
 	ensureLoaded();
 	if (_pixmap.isNull()) {
 		p.fillRect(rect, colorOverride);
-	} else {
+	} else if (!PaintScaledSvgIcon(p, _mask, rect, _maskImage.size(), colorOverride)) {
 		ensureColorizedImage(colorOverride);
 		p.drawImage(rect, _colorizedImage);
 	}
@@ -297,6 +370,11 @@ void MonoIcon::paint(
 	const auto partPosY = pos.y() + _padding.top();
 
 	if (!maskImage.isNull()) {
+		if (PaintScaledSvgIcon(p, _mask,
+				QRect(QPoint(partPosX, partPosY), size), maskImage.size(),
+				_color[paletteOverride]->c)) {
+			return;
+		}
 		auto colorized = QImage(
 			maskImage.size(),
 			QImage::Format_ARGB32_Premultiplied);
@@ -322,6 +400,10 @@ void MonoIcon::fill(
 		size = maskImage.size() / DevicePixelRatio();
 	}
 	if (!maskImage.isNull()) {
+		if (PaintScaledSvgIcon(p, _mask, rect, maskImage.size(),
+				_color[paletteOverride]->c)) {
+			return;
+		}
 		auto colorized = QImage(
 			maskImage.size(),
 			QImage::Format_ARGB32_Premultiplied);
