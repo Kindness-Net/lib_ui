@@ -111,6 +111,7 @@ boxTitle: FlatLabel(defaultFlatLabel) {
 }
 // 对话框外壳的标题最多两行。
 boxLayerTitle: FlatLabel(boxTitle) {
+	minWidth: 1px;
 	maxHeight: 52px;
 }
 boxTitlePosition: point(20px, 18px);

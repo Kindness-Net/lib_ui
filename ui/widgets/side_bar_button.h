@@ -34,6 +34,7 @@ public:
 	void setIconOverride(
 		const style::icon *iconOverride,
 		const style::icon *iconOverrideActive = nullptr);
+	void setIconPainter(Fn<bool(QPainter &, QRect, QColor)> painter);
 	void setLocked(bool locked);
 	// 只替换未选中时的图标与文字颜色，选中态保持样式配色。
 	void setColorOverride(std::optional<QColor> fg);
@@ -61,6 +62,7 @@ private:
 	[[nodiscard]] const style::icon &computeIcon() const;
 	[[nodiscard]] int iconLeft() const;
 	[[nodiscard]] int iconTop() const;
+	void paintIcon(QPainter &p, QPoint position, int outerWidth) const;
 	void validateIconCache();
 	void validateLockIconCache();
 
@@ -79,6 +81,7 @@ private:
 	bool _showText = true;
 
 	Fn<bool()> _paused;
+	Fn<bool(QPainter &, QRect, QColor)> _iconPainter;
 	Text::MarkedContext _context;
 
 	struct {

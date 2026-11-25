@@ -94,12 +94,16 @@ void BoxLayerWidget::setLayerType(bool layerType) {
 
 // 标题最多两行，多出的行把内容整体下移。
 int BoxLayerWidget::titleHeight() const {
+	return st::boxTitleHeight + _titleExtra;
+}
+
+int BoxLayerWidget::titleExtraHeight() const {
 	if (!_title) {
-		return st::boxTitleHeight;
+		return 0;
 	}
 	const auto &style = st().title.style;
 	const auto line = std::max(style.lineHeight, style.font->height);
-	return st::boxTitleHeight + std::max(0, _title->height() - line);
+	return std::max(_title->height() - line, 0);
 }
 
 const style::Box &BoxLayerWidget::st() const {
@@ -380,6 +384,7 @@ void BoxLayerWidget::setTitle(
 		}, _title->lifetime());
 	} else {
 		_title.destroy();
+		updateTitlePosition();
 	}
 	if (wasTitle != hasTitle()) {
 		updateSize();
@@ -544,6 +549,21 @@ void BoxLayerWidget::updateTitlePosition() {
 		_title->resizeToNaturalWidth(available - additionalWidth);
 		_title->moveToLeft(_titleLeft, _titleTop);
 	}
+	const auto extra = titleExtraHeight();
+	if (_titleExtra != extra) {
+		_titleExtra = extra;
+		updateMaxRealHeight();
+		updateSize();
+		updateContentGeometry();
+		update();
+	}
+}
+
+void BoxLayerWidget::updateContentGeometry() {
+	const auto top = contentTop();
+	_content->resize(width(), std::max(0, height() - top - buttonsHeight()));
+	_content->moveToLeft(0, top);
+	updateContentOpaque();
 }
 
 void BoxLayerWidget::setCustomCornersFilling(RectParts corners) {
@@ -750,11 +770,7 @@ int BoxLayerWidget::contentTop() const {
 void BoxLayerWidget::resizeEvent(QResizeEvent *e) {
 	updateButtonsPositions();
 	updateTitlePosition();
-
-	const auto top = contentTop();
-	_content->resize(width(), std::max(0, height() - top - buttonsHeight()));
-	_content->moveToLeft(0, top);
-	updateContentOpaque();
+	updateContentGeometry();
 
 	LayerWidget::resizeEvent(e);
 }

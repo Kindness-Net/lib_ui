@@ -130,6 +130,8 @@ private:
 	[[nodiscard]] int titleRightSkip() const;
 	[[nodiscard]] int countBoxWidth(int requestedWidth) const;
 	[[nodiscard]] ButtonsLayout buttonsLayout() const;
+	[[nodiscard]] int titleExtraHeight() const;
+	void updateContentGeometry();
 	[[nodiscard]] int buttonsHeight() const;
 	[[nodiscard]] int contentTop() const;
 	[[nodiscard]] int countFullHeight() const;
@@ -149,6 +151,7 @@ private:
 	not_null<LayerStackDelegate*> _layer;
 	rpl::variable<int> _realHeightMax;
 	rpl::variable<int> _contentHeightMax;
+	int _titleExtra = 0;
 	int _fullHeight = 0;
 	int _boxWidth = 0;
 	bool _dimensionsSet = false;

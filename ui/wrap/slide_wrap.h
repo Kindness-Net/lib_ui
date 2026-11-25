@@ -66,6 +66,7 @@ protected:
 	void wrappedSizeUpdated(QSize size) override;
 
 private:
+	void animationCallback();
 	void animationStep();
 
 	rpl::event_stream<bool> _toggledChanged;

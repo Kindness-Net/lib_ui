@@ -74,4 +74,8 @@ class CustomEmoji;
 
 [[nodiscard]] QString StripUrlProtocol(const QString &link);
 
+[[nodiscard]] QString Upper(const QString &text);
+[[nodiscard]] QString Capitalized(const QString &text);
+void SetUpperLanguage(const QString &languageId);
+
 } // namespace Ui::Text
